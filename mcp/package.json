@@ -1,0 +1,18 @@
+{
+  "name": "margin-notes-mcp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MCP server that lets chat apps read your Margin Notes library",
+  "type": "module",
+  "bin": { "margin-notes-mcp": "server.mjs" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ws": "^8.23.0",
+    "zod": "^4.6.7"
+  }
+}

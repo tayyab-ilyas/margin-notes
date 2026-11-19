@@ -1,6 +1,6 @@
 # Margin Notes
 
-A Chrome/Edge extension for taking notes while you read: highlight passages, attach notes and tags, and clip passages or regions of the page as screenshots. Everything is stored locally in your browser (IndexedDB) and can be exported as Markdown or backed up as JSON.
+A Chrome/Edge extension for taking notes while you read: highlight passages, attach notes and tags, and clip passages or regions of the page as screenshots. Everything is stored locally in your browser (IndexedDB) and can be exported as Markdown or backed up as JSON. If you choose, chat apps like Claude can search your notes too ([MCP server](mcp/)).
 
 [![A foggy article; highlighting a sentence brings it back into focus](docs/demo-preview.gif)](docs/demo.mp4)
 
@@ -25,6 +25,7 @@ For development with hot reload, run `npm run dev`. It launches the browser set 
 - **Right-click** a selection for Highlight, Highlight with note, and Clip.
 - **Side panel:** shows this page's highlights and clips in reading order, plus a free-form page note. Click **Show** to scroll to a highlight; notes and tags can be edited inline.
 - **Library** (button in the panel): every page you've annotated, with search, color and tag filters, Markdown/zip export, and JSON backup/import.
+- **Chat apps (MCP):** in the Library, turn on **Chat apps (MCP)** to let Claude Desktop, Claude Code or another MCP client search your highlights, read a page's notes and see your clips. It's off by default and read-only, and the browser has to be open. Setup is in [mcp/README.md](mcp/README.md).
 
 | Shortcut | Action |
 | --- | --- |
@@ -41,9 +42,10 @@ Change these at `edge://extensions/shortcuts`.
 | --- | --- |
 | `npm run dev` | Dev build with hot reload, opens a browser |
 | `npm run build` | Production build into `.output/chrome-mv3` |
-| `npm test` | Unit tests (anchoring, capture planning, export, DB) |
+| `npm test` | Unit tests (anchoring, capture planning, export, DB, MCP queries) |
 | `npm run e2e` | Builds, loads the extension into headless Edge, and runs it end to end (selection toolbar, notes, reload restore, clips, snips, library). Screenshots land in `.output/e2e`. Set `BROWSER_PATH` to use another Chromium browser. |
 | `npm run compile` | Type-check |
+| `cd mcp && npm test` | MCP bridge tests (origin check, pairing token, call round trip) |
 | `npm run zip` | Package for store upload |
 
 ## How it works
@@ -53,11 +55,13 @@ Web page (content script)        Service worker                    Extension pag
 selection toolbar, popover  ──►  message router ──► IndexedDB ◄──  side panel, library
 (closed shadow DOM)              captureVisibleTab                 (React + Dexie liveQuery)
 <notes-mark> highlights     ◄──  notifies open tabs of changes
+                                 WebSocket client (opt-in) ──► mcp/server.mjs ◄──stdio── chat app
 ```
 
 - **Anchoring** ([lib/anchoring.ts](lib/anchoring.ts)): a highlight is saved as its exact text, 32 characters of context on each side, and a position hint, all measured on whitespace-collapsed page text. On revisit, the extension finds the occurrence whose context matches best, so it survives layout changes and content inserted above it. Text that loads late is retried for 20 seconds. Highlights that can't be found are flagged in the side panel.
 - **Storage** ([lib/db.ts](lib/db.ts)): only the service worker writes on behalf of content scripts, because a content script's IndexedDB belongs to the *website*, not the extension.
 - **Screenshots** ([entrypoints/content/capture.ts](entrypoints/content/capture.ts)): `captureVisibleTab` is cropped to the region. Passages taller than the screen are scrolled, captured in slices (throttled to Chrome's limit of 2 per second) and stitched together. Sticky headers are hidden so they don't cover or repeat in the image.
+- **Chat apps** ([lib/mcp.ts](lib/mcp.ts), [mcp/](mcp/)): when turned on, the service worker connects to a local MCP server over a WebSocket on `127.0.0.1` and answers four read-only queries. The server accepts only extension origins that present the pairing token shown in the Library.
 - **Page identity** ([lib/url.ts](lib/url.ts)): URLs are normalized (no `#hash`, no `utm_*`/`fbclid` and similar), so the same article reached from different links shares its notes.
 
 ## Limitations
@@ -65,3 +69,4 @@ selection toolbar, popover  ──►  message router ──► IndexedDB ◄─
 - Browsers don't allow extensions on built-in pages, the extension stores, or the built-in PDF viewer.
 - Text inside iframes isn't highlightable.
 - If a page's text changes substantially, some highlights may not re-anchor. They stay in the side panel and library with their quote.
+- Chat app access is read-only, works for one chat app at a time (fixed port 47321), and needs the browser open.

@@ -18,7 +18,8 @@ export type BgRequest =
       annotation: NewAnnotation;
       page: PageInfo;
     }
-  | { type: 'activateTab'; tabId: number };
+  | { type: 'activateTab'; tabId: number }
+  | { type: 'mcpStatus' };
 
 export interface BgResponses {
   getAnnotations: Annotation[];
@@ -30,6 +31,7 @@ export interface BgResponses {
   captureVisible: string;
   saveClip: Annotation;
   activateTab: null;
+  mcpStatus: { connected: boolean };
 }
 
 const BG_TYPES = new Set<string>([
@@ -42,6 +44,7 @@ const BG_TYPES = new Set<string>([
   'captureVisible',
   'saveClip',
   'activateTab',
+  'mcpStatus',
 ]);
 
 export function isBgRequest(msg: unknown): msg is BgRequest {
@@ -76,7 +79,10 @@ export interface TabStatus {
 }
 
 /** Broadcasts that extension pages (side panel, library) listen for. */
-export type Broadcast = { type: 'status'; status: TabStatus } | { type: 'dbChanged'; pageUrl: string };
+export type Broadcast =
+  | { type: 'status'; status: TabStatus }
+  | { type: 'dbChanged'; pageUrl: string }
+  | { type: 'mcpStatus'; connected: boolean };
 
 export async function sendToTab<T = unknown>(tabId: number, msg: TabMessage): Promise<T | undefined> {
   try {

@@ -137,3 +137,51 @@
     padding: 20px 16px 48px;
   }
 }
+
+.mcp {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 14px;
+}
+.mcp summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.mcp-dot.on {
+  background: #2f9e44;
+}
+.mcp-dot.wait {
+  background: #e0a800;
+}
+.mcp-state {
+  color: var(--muted);
+  font-weight: 400;
+}
+.mcp .check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+.mcp-warn {
+  color: var(--muted);
+}
+.mcp-config {
+  overflow-x: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12.5px;
+}

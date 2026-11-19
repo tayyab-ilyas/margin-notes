@@ -8,7 +8,7 @@ export default defineConfig({
   manifest: {
     name: 'Margin Notes',
     description: 'Highlight, annotate and clip passages while you read on the web.',
-    permissions: ['storage', 'unlimitedStorage', 'sidePanel', 'contextMenus', 'activeTab', 'scripting'],
+    permissions: ['storage', 'unlimitedStorage', 'sidePanel', 'contextMenus', 'activeTab', 'scripting', 'alarms'],
     host_permissions: ['<all_urls>'],
     action: { default_title: 'Margin Notes: open side panel' },
     commands: {

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useRef, useState } from 'react';
 import { AnnotationCard } from '../../components/AnnotationCard';
+import { McpPanel } from '../../components/McpPanel';
 import { downloadBlob } from '../../components/download';
 import { useDbChanges } from '../../components/useDbChanges';
 import { db } from '../../lib/db';
@@ -135,6 +136,8 @@ export function App() {
           />
         </div>
       </header>
+
+      <McpPanel />
 
       <div className="toolbar-row">
         <input

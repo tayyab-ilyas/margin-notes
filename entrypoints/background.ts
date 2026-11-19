@@ -2,6 +2,8 @@ import { browser, type Browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { dataUrlToBlob } from '../lib/capture';
 import { db, deletePage } from '../lib/db';
+import { runMcpQuery } from '../lib/mcp';
+import { getMcpSettings, MCP_SETTINGS_KEY } from '../lib/settings';
 import { isBgRequest, sendToTab, type BgRequest, type Broadcast, type Envelope, type TabMessage, type TabStatus } from '../lib/messages';
 import type { Annotation, Page, PageInfo } from '../lib/types';
 import { newId } from '../lib/types';
@@ -62,7 +64,70 @@ export default defineBackground(() => {
     else if (command === 'highlight-selection') void tellTab(tabId, { type: 'command', command: 'highlight' });
     else if (command === 'snip-region') void tellTab(tabId, { type: 'command', command: 'snip' });
   });
+
+  // Chat app (MCP) bridge: retry every 30 s, since the MCP server only runs while a chat app is open.
+  browser.alarms.create('mcp', { periodInMinutes: 0.5 });
+  browser.alarms.onAlarm.addListener((a) => {
+    if (a.name === 'mcp') void connectMcp();
+  });
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[MCP_SETTINGS_KEY]) {
+      mcpSocket?.close();
+      void connectMcp();
+    }
+  });
+  void connectMcp();
 });
+
+let mcpSocket: WebSocket | null = null;
+let mcpWelcomed = false; // true once the server accepted our token
+
+/**
+ * Connects to the local MCP server (mcp/server.mjs) when the user has turned chat app access on.
+ * The extension is the client, so the server never needs access to the browser; it can only ask
+ * the read-only queries in lib/mcp.ts, and only after presenting the pairing token.
+ */
+async function connectMcp() {
+  const s = await getMcpSettings();
+  if (!s.enabled) {
+    mcpSocket?.close();
+    return;
+  }
+  if (mcpSocket && mcpSocket.readyState <= WebSocket.OPEN) return;
+  const sock = new WebSocket(`ws://127.0.0.1:${s.port}`);
+  mcpSocket = sock;
+  mcpWelcomed = false;
+  sock.onopen = () => sock.send(JSON.stringify({ type: 'hello', token: s.token, version: browser.runtime.getManifest().version }));
+  sock.onmessage = async (e) => {
+    let msg: { type?: string; id?: number; method?: string; params?: Record<string, unknown> };
+    try {
+      msg = JSON.parse(String(e.data));
+    } catch {
+      return;
+    }
+    if (msg.type === 'welcome') {
+      mcpWelcomed = true;
+      broadcast({ type: 'mcpStatus', connected: true });
+    }
+    // Answering the server's pings keeps this service worker awake while a chat app is connected.
+    else if (msg.type === 'ping') sock.send('{"type":"pong"}');
+    else if (msg.type === 'call') {
+      try {
+        const result = await runMcpQuery(db, msg.method ?? '', msg.params ?? {});
+        sock.send(JSON.stringify({ type: 'result', id: msg.id, result }));
+      } catch (err) {
+        sock.send(JSON.stringify({ type: 'result', id: msg.id, error: err instanceof Error ? err.message : String(err) }));
+      }
+    }
+  };
+  sock.onclose = () => {
+    if (mcpSocket === sock) {
+      mcpSocket = null;
+      mcpWelcomed = false;
+    }
+    broadcast({ type: 'mcpStatus', connected: false });
+  };
+}
 
 function createContextMenus() {
   browser.contextMenus.removeAll(() => {
@@ -220,5 +285,8 @@ async function handle(req: BgRequest, sender: Sender): Promise<unknown> {
       if (await ensureContentScript(req.tabId)) await sendToTab(req.tabId, { type: 'setEnabled', enabled: true });
       return null;
     }
+
+    case 'mcpStatus':
+      return { connected: mcpSocket?.readyState === WebSocket.OPEN && mcpWelcomed };
   }
 }
