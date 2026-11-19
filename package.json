@@ -1,0 +1,36 @@
+{
+  "name": "margin-notes",
+  "description": "Highlight, annotate and clip passages while reading on the web.",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:edge": "wxt -b edge",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "test": "vitest run",
+    "icons": "node scripts/make-icons.mjs",
+    "postinstall": "wxt prepare",
+    "e2e": "wxt build && node scripts/e2e.mjs"
+  },
+  "dependencies": {
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "jszip": "^3.10.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@wxt-dev/module-react": "^1.2.2",
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^29.1.1",
+    "puppeteer-core": "^25.18.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "wxt": "^0.21.5"
+  }
+}

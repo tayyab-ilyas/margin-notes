@@ -1,0 +1,234 @@
+/* Lives inside a closed shadow root, so page styles can't reach it. */
+.layer {
+  --ink: #1d1e22;
+  --ink-2: #2b2d33;
+  --paper: #ffffff;
+  --text: #1d1e22;
+  --muted: #6b6f78;
+  --line: #e4e5e9;
+  --accent: #3b5bdb;
+  --danger: #e03131;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  .layer {
+    --paper: #25262b;
+    --text: #e9e9ec;
+    --muted: #a0a3ab;
+    --line: #3a3c43;
+    --accent: #748ffc;
+    --danger: #ff6b6b;
+  }
+}
+.layer > * {
+  pointer-events: auto;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  margin: 0;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- selection toolbar ---------- */
+.toolbar {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #f1f3f5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  animation: pop 0.12s ease-out;
+}
+.toolbar .tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.toolbar .tool:hover {
+  background: var(--ink-2);
+}
+.icon-only {
+  padding: 5px 6px !important;
+}
+.sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #4a4d55;
+}
+.swatches {
+  display: flex;
+  gap: 5px;
+  padding: 0 4px;
+}
+.swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s;
+}
+.swatch:hover {
+  transform: scale(1.18);
+}
+.swatch.active {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}
+
+/* ---------- note popover ---------- */
+.popover {
+  position: fixed;
+  width: 300px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.22);
+  animation: pop 0.12s ease-out;
+}
+.popover textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.popover .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.popover .swatches {
+  padding: 0;
+}
+.spacer {
+  flex: 1;
+}
+.popover .tool {
+  display: inline-flex;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.popover .tool.danger:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.primary {
+  padding: 5px 12px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- snip overlay ---------- */
+.snip {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+  background: rgba(15, 17, 22, 0.28);
+  user-select: none;
+}
+.snip.dragging {
+  background: transparent;
+}
+.snip-rect {
+  position: absolute;
+  border: 2px solid #fff;
+  outline: 1px dashed rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 9999px rgba(15, 17, 22, 0.35);
+}
+.snip-size {
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.snip-hint {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  animation: rise 0.18s ease-out;
+}
+.toast.error {
+  background: #c92a2a;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toolbar,
+  .popover,
+  .toast {
+    animation: none;
+  }
+}

@@ -1,0 +1,139 @@
+.library {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+}
+.lib-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.totals {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.lib-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toolbar-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 8px;
+  padding: 10px 0;
+  background: var(--bg);
+}
+.search {
+  flex: 1 1 280px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.color-filter {
+  display: flex;
+  gap: 6px;
+}
+.color-filter button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+.color-filter button.on,
+.color-filter button:hover {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+.toolbar-row select {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.flash {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.page-section {
+  margin-top: 28px;
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.page-head img {
+  flex: none;
+  border-radius: 3px;
+}
+.page-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.page-info a {
+  color: var(--text);
+  font-weight: 650;
+  font-size: 16px;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page-info a:hover {
+  text-decoration: underline;
+}
+.page-note-view {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.grid {
+  columns: 3 320px;
+  column-gap: 14px;
+}
+.grid .card {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 600px) {
+  .library {
+    padding: 20px 16px 48px;
+  }
+}
