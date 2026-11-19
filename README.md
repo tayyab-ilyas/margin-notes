@@ -2,6 +2,10 @@
 
 A Chrome/Edge extension for taking notes while you read: highlight passages, attach notes and tags, and clip passages or regions of the page as screenshots. Everything is stored locally in your browser (IndexedDB) and can be exported as Markdown or backed up as JSON.
 
+[![Watch the 1-minute demo](docs/demo-poster.jpg)](docs/demo.mp4)
+
+**[▶ Watch the 1-minute demo](docs/demo.mp4)** (made with the tooling in [demo-video/](demo-video/))
+
 ## Run it
 
 ```sh

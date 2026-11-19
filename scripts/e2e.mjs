@@ -2,6 +2,7 @@ import http from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { shadowButton, textRect } from './page-helpers.mjs';
 
 // End-to-end check: loads the built extension into a real Chromium browser and drives it.
 // Usage: npm run e2e   (set BROWSER_PATH to use a browser other than Edge)
@@ -104,55 +105,9 @@ try {
   check('status url is normalized', status.url.endsWith('/article'), status.url);
 
   // ---- helpers ----
-  const cdp = await page.createCDPSession();
-  async function shadowButton(attr, value) {
-    const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
-    const stack = [root];
-    while (stack.length) {
-      const n = stack.pop();
-      if (n.nodeName === 'BUTTON' && n.attributes) {
-        for (let i = 0; i < n.attributes.length; i += 2) {
-          if (n.attributes[i] === attr && n.attributes[i + 1] === value) {
-            const { model } = await cdp.send('DOM.getBoxModel', { backendNodeId: n.backendNodeId });
-            const q = model.content;
-            return { x: (q[0] + q[4]) / 2, y: (q[1] + q[5]) / 2 };
-          }
-        }
-      }
-      for (const c of [...(n.children ?? []), ...(n.shadowRoots ?? []), ...(n.contentDocument ? [n.contentDocument] : [])]) stack.push(c);
-    }
-    return null;
-  }
-  async function textRect(selector, text) {
-    return page.evaluate(
-      (sel, t) => {
-        const el = document.querySelector(sel);
-        el.scrollIntoView({ block: 'center' });
-        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-        let full = '';
-        const nodes = [];
-        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-          nodes.push([n, full.length]);
-          full += n.data;
-        }
-        const at = full.indexOf(t);
-        const point = (off) => {
-          for (let i = nodes.length - 1; i >= 0; i--) if (nodes[i][1] <= off) return [nodes[i][0], off - nodes[i][1]];
-        };
-        const r = document.createRange();
-        r.setStart(...point(at));
-        r.setEnd(...point(at + t.length));
-        const rects = r.getClientRects();
-        const first = rects[0];
-        const last = rects[rects.length - 1];
-        return { x1: first.left + 1, y1: first.top + first.height / 2, x2: last.right - 1, y2: last.top + last.height / 2 };
-      },
-      selector,
-      text,
-    );
-  }
   async function dragSelect(selector, text) {
-    const r = await textRect(selector, text);
+    await page.$eval(selector, (el) => el.scrollIntoView({ block: 'center' }));
+    const r = await textRect(page, selector, text);
     await page.mouse.move(r.x1, r.y1);
     await page.mouse.down();
     await page.mouse.move((r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2, { steps: 5 });
@@ -167,7 +122,7 @@ try {
   const selected = await dragSelect('#p1', 'quick brown fox jumps');
   check('mouse drag selects text', selected.includes('quick brown fox'), JSON.stringify(selected));
   await page.screenshot({ path: join(OUT, '1-toolbar.png') });
-  const green = await shadowButton('title', 'Highlight green');
+  const green = await shadowButton(page, 'title', 'Highlight green');
   check('selection toolbar appears', !!green);
   await page.mouse.click(green.x, green.y);
   await sleep(500);
@@ -180,7 +135,7 @@ try {
 
   // ---- 2. highlight + note via the Note button and popover ----
   await dragSelect('#p2', 'compressed arguments');
-  const noteBtn = await shadowButton('title', 'Highlight and add a note');
+  const noteBtn = await shadowButton(page, 'title', 'Highlight and add a note');
   await page.mouse.click(noteBtn.x, noteBtn.y);
   await sleep(300);
   await page.screenshot({ path: join(OUT, '2-popover.png') });
@@ -213,7 +168,7 @@ try {
   });
   await page.mouse.click(markPos.x, markPos.y);
   await sleep(300);
-  const pink = await shadowButton('title', 'Highlight pink');
+  const pink = await shadowButton(page, 'title', 'Highlight pink');
   check('clicking a highlight opens popover', !!pink);
   await page.mouse.click(pink.x, pink.y);
   await sleep(500);
@@ -221,11 +176,11 @@ try {
   check('colour change saved', anns.some((a) => a.selector.exact === 'quick brown fox jumps' && a.color === 'pink'));
   await page.keyboard.press('Escape');
   await sleep(200);
-  check('Escape closes popover with a button focused', !(await shadowButton('title', 'Highlight pink')));
+  check('Escape closes popover with a button focused', !(await shadowButton(page, 'title', 'Highlight pink')));
 
   // ---- 5. clip a selection (fits in viewport) ----
   await dragSelect('#p2', 'Good notes are not transcripts');
-  const clipBtn = await shadowButton('title', 'Save this passage as a screenshot');
+  const clipBtn = await shadowButton(page, 'title', 'Save this passage as a screenshot');
   await page.mouse.click(clipBtn.x, clipBtn.y);
   await sleep(2500);
   let images = await dbAll('images');
