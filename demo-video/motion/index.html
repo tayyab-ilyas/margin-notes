@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<!-- Made with the Bang Motion skill (MIT) by Bang Tutorial - https://github.com/bangtutorial/bang-motion -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Margin Notes demo</title>
+<!--
+  STYLE BRIEF
+  Product + feel   : Margin Notes (highlight, note, clip while reading) · calm, sharp, reassuring
+  Concept          : "an article that forgets itself" (one continuous shot + problem -> vanish)
+                     candidates: single-feature demo / claim->how->result / forgetting article (picked)
+  Fingerprint      : continuous shot · 7 beats · the article page · sentence blurring away · highlighter wipe to icon + tagline
+  Palette          : ink #2b2f3a (icon bg) · paper #fbfaf7 (article page) · accent #ffd43b (icon highlight)
+  Fonts            : Newsreader (claims) / Source Serif 4 (article) / system UI (extension UI, as in the product)
+  Emphasis         : the highlighter sweep itself, no other word styling
+  Signature motion : yellow highlighter sweep that pulls text back out of the fog
+  Background       : warm paper, two drifting light pools + living grain; text fog breathes
+  Big moment       : forgetting curve: red line falls, green line snaps back with every revisit
+  Determinism      : everything is a function of tl.time(); audio is rendered offline from the same event list
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+:root{
+  --ink:#2b2f3a; --text:#1d1d1f; --paper:#fbfaf7; --paper-2:#f3efe6; --accent:#ffd43b;
+  --hl:rgba(255,212,0,.42); --sel:#3367d6; --ui:#1d1e22; --ui-2:#25262b; --ui-line:#3a3c43; --ui-accent:#748ffc;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:var(--paper);overflow:hidden;color:var(--text)}
+#filters{position:fixed;width:0;height:0;opacity:0;pointer-events:none}
+#stage{position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%);overflow:hidden;background:var(--paper)}
+
+/* ---------- background surface (screen layer, under the world) ---------- */
+#bg{position:absolute;inset:-200px;pointer-events:none}
+#bg i{position:absolute;border-radius:50%}
+#bg .l1{width:1500px;height:1500px;left:-300px;top:-500px;background:radial-gradient(circle,#fffdf6 0%,rgba(255,253,246,0) 65%)}
+#bg .l2{width:1300px;height:1300px;left:1000px;top:400px;background:radial-gradient(circle,rgba(255,226,140,.20) 0%,rgba(255,226,140,0) 65%)}
+#grain{position:absolute;inset:-64px;pointer-events:none;opacity:.07;mix-blend-mode:multiply;z-index:30;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- world (camera rig) ---------- */
+#world{position:absolute;left:0;top:0;width:1920px;height:3000px;transform-origin:0 0;will-change:transform}
+.site{position:absolute;left:0;right:0;top:0;height:70px;border-bottom:1px solid #e7e3da;background:rgba(255,255,255,.7)}
+.site div{position:absolute;left:420px;width:960px;top:24px;display:flex;justify-content:space-between;font:600 20px/1 var(--sans);letter-spacing:.02em}
+.site span{color:#8a8578;font-weight:500}
+#article{position:absolute;left:420px;top:124px;width:960px;font:27px/1.7 "Source Serif 4",Georgia,serif;color:var(--text)}
+#article h1{font:700 59px/1.15 var(--sans);letter-spacing:-.02em;margin-bottom:18px;color:var(--text)}
+#article .dek{font-size:29px;color:#55524b;margin-bottom:24px}
+#article .by{font:19px var(--sans);color:#8a8578;margin-bottom:44px}
+#article p{margin-bottom:28px}
+#article h2{font:700 35px/1.3 var(--sans);margin:58px 0 14px}
+#article figure{margin:46px 0;padding:29px;background:#fff;border:1px solid #e7e3da;border-radius:16px}
+#article figcaption{font:19px/1.5 var(--sans);color:#6f6b62;margin-top:12px}
+#article blockquote{margin:36px 0;padding-left:26px;border-left:4px solid #d9a441;color:#3b3a36;font-style:italic}
+/* fog: --f 0 = sharp, 1 = forgotten. Animated per word. */
+.w{--f:0;color:rgb(29 29 31 / calc(1 - .86*var(--f)));text-shadow:0 0 calc(var(--f)*9px) rgb(29 29 31 / calc(.55*var(--f)))}
+.w.sel{background:var(--sel);color:#fff;text-shadow:none;box-shadow:7px 0 0 var(--sel)}
+.mk{--p:0;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:calc(var(--p)*100%) 100%;
+  -webkit-box-decoration-break:slice;box-decoration-break:slice}
+.ndot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e0a800;vertical-align:super;margin-left:2px;opacity:0}
+
+/* extension UI, rebuilt from entrypoints/content/ui.css (sizes x1.35 for 1080p) */
+.toolbar{position:absolute;display:flex;align-items:center;gap:3px;padding:6px 8px;border-radius:13px;background:var(--ui);color:#f1f3f5;
+  box-shadow:0 8px 30px rgba(0,0,0,.28),0 1px 4px rgba(0,0,0,.2);white-space:nowrap;font:500 19px var(--sans);opacity:0;transform-origin:50% 100%;z-index:6}
+.toolbar .sw{display:flex;gap:7px;padding:0 6px}
+.dot{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);display:inline-block}
+.d-y{background:#ffe066}.d-g{background:#a9e5a0}.d-b{background:#a5d8ff}.d-p{background:#ffb3d1}.d-v{background:#d0bfff}
+.toolbar .sep{width:1px;height:24px;margin:0 5px;background:#4a4d55}
+.toolbar .tool{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px}
+.toolbar svg{width:19px;height:19px;stroke:#f1f3f5;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.popover{position:absolute;width:420px;padding:13px;border-radius:16px;background:var(--ui);border:1px solid var(--ui-line);
+  box-shadow:0 14px 44px rgba(0,0,0,.26);opacity:0;transform-origin:50% 0;font:19px var(--sans);color:#f1f3f5;z-index:6}
+.popover .ta{min-height:110px;padding:11px;border:2px solid var(--ui-accent);border-radius:11px;background:var(--ui-2);line-height:1.4}
+.popover .caret{display:inline-block;width:2px;height:1.1em;background:#f1f3f5;vertical-align:-3px;margin-left:1px}
+.popover .row{display:flex;align-items:center;gap:8px;margin-top:11px}
+.popover .row .dot{width:24px;height:24px}
+.popover .row .dot.on{box-shadow:0 0 0 2px var(--ui),0 0 0 4px var(--ui-accent)}
+.popover .sp{flex:1}
+.popover .done{background:var(--ui-accent);color:#fff;font-weight:600;padding:8px 16px;border-radius:9px}
+.popover .trash{width:22px;height:22px;stroke:#a0a3ab;fill:none;stroke-width:2}
+
+#dim{position:absolute;inset:0;background:rgba(0,0,0,.30);opacity:0;z-index:5;pointer-events:none}
+#snipbox{position:absolute;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);opacity:0;z-index:7;background:rgba(255,255,255,.12)}
+#snipsize{position:absolute;left:-2px;top:-34px;background:var(--ui);color:#fff;font:600 16px var(--sans);padding:4px 9px;border-radius:7px;font-variant-numeric:tabular-nums;min-width:96px}
+#flash{position:absolute;background:#fff;opacity:0;z-index:8}
+.clipcard{position:absolute;background:#fff;border-radius:16px;opacity:0;z-index:9;transform-origin:0 0;padding:29px;
+  box-shadow:0 30px 70px rgba(43,47,58,.22),0 0 0 1px #e7e3da}
+
+/* side panel (entrypoints/sidepanel) */
+#panel{position:absolute;left:1440px;width:420px;height:1000px;background:#fff;border-left:1px solid #dadce0;border-radius:16px;
+  box-shadow:0 20px 60px rgba(43,47,58,.16);font:16px var(--sans);color:#1d1d1f;padding:16px;z-index:10;opacity:0}
+#panel .hd{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:17px;margin-bottom:12px}
+.btn{display:inline-block;border:1px solid #dadce0;border-radius:9px;padding:8px 13px;font-weight:500;background:#fff;font-size:15px}
+#panel .box{border:1px solid #e4e5e9;border-radius:12px;padding:12px;margin-bottom:12px}
+.tog{display:inline-block;width:38px;height:22px;border-radius:11px;background:#2f9e44;position:relative;vertical-align:-5px;margin-right:6px}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff}
+#panel .tabs{display:flex;gap:16px;font-size:15px;color:#555;margin:6px 0 10px}
+#panel .tabs b{background:#e7ecff;color:#3b5bdb;padding:4px 10px;border-radius:999px;font-weight:600}
+.card{border:1px solid #e4e5e9;border-left:5px solid #ffd43b;border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.card .q{font:17px/1.4 "Source Serif 4",Georgia,serif;margin-bottom:8px}
+.card .n{background:#f1f3f5;border-radius:8px;padding:8px 10px;font-size:15px;color:#333;margin-bottom:6px}
+.card .n.ph{color:#999}
+.card .meta{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#777}
+.card .meta .ds{display:flex;gap:4px;align-items:center}
+.card .meta .dot{width:13px;height:13px}
+.card .meta .dot.on{box-shadow:0 0 0 2px #fff,0 0 0 3px #555}
+.card .tag{font-size:13px;color:#777;margin-bottom:6px}
+.card .img{height:150px;border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff}
+#panel .card{opacity:0}
+
+/* library (entrypoints/library) */
+#library{position:absolute;left:60px;width:1800px;height:1000px;background:#f6f5f2;border-radius:16px;z-index:12;overflow:hidden;
+  box-shadow:0 30px 80px rgba(43,47,58,.22);font:19px var(--sans);color:#1d1d1f;visibility:hidden}
+#library .in{position:absolute;left:300px;width:1200px;top:44px}
+#library .top{display:flex;align-items:center;gap:14px}
+#library .top .ic{width:44px;height:44px}
+#library .top h3{font-size:30px;font-weight:700}
+#library .top small{display:block;font-size:16px;color:#777;font-weight:400}
+#library .top .acts{margin-left:auto;display:flex;gap:10px}
+#library .top .btn{font-size:17px;padding:10px 16px}
+#library .search{display:flex;align-items:center;gap:14px;margin:30px 0 34px}
+#library .field{flex:1;height:54px;border:2px solid #4c6ef5;border-radius:12px;background:#fff;padding:0 18px;display:flex;align-items:center;font-size:20px}
+#library .field .ph{color:#aaa}
+#library .search .dot{width:26px;height:26px}
+.grp{margin-bottom:26px}
+.grp .gh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e3e1db;padding-bottom:10px;margin-bottom:14px}
+.grp .gh b{font-size:21px}
+.grp .gh small{display:block;font-size:15px;color:#777}
+.grp .gh span{font-size:16px;color:#3b5bdb}
+.grp .cards{display:flex;gap:16px}
+.grp .card{width:380px}
+#mdfile{position:absolute;width:560px;background:#fff;border-radius:14px;box-shadow:0 30px 70px rgba(43,47,58,.25),0 0 0 1px #e4e1d8;
+  font:17px/1.55 ui-monospace,Consolas,monospace;color:#333;padding:0 0 18px;opacity:0;z-index:14;overflow:hidden}
+#mdfile .fn{background:var(--ui);color:#f1f3f5;font:600 16px var(--sans);padding:12px 18px;margin-bottom:14px;display:flex;gap:10px;align-items:center}
+#mdfile .fn i{width:12px;height:12px;border-radius:50%;background:#ffd43b}
+#mdfile pre{padding:0 22px;white-space:pre-wrap;font:inherit}
+#mdfile .h{color:#1d1d1f;font-weight:700}
+
+#cur{position:absolute;left:0;top:0;width:36px;height:42px;z-index:20;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));opacity:0}
+.ripple{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(59,130,246,.35);opacity:0;z-index:19}
+
+/* ---------- screen layer: claims + end card ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:40}
+.claim{position:absolute;white-space:nowrap;font:500 84px/1.08 "Newsreader",Georgia,serif;letter-spacing:-.02em;color:var(--ink);visibility:hidden}
+.claim.sm{font-size:64px}.claim.lg{font-size:104px}.claim.xl{font-size:132px}
+.claim .pk{position:absolute;inset:-34px -56px;background:rgba(251,250,247,.95);border-radius:40px;filter:blur(22px);z-index:-1}
+.claim .ic{display:inline-block;width:.78em;height:.78em;vertical-align:-.08em;margin-right:.25em}
+.wd{display:inline-block;white-space:nowrap}
+.ch{display:inline-block;will-change:transform,opacity;opacity:0}
+.keys{display:inline-flex;gap:8px;margin-left:24px;vertical-align:middle}
+.keys span{font:600 26px var(--sans);padding:6px 14px;border-radius:10px;background:#fff;border:1px solid #d6d2c8;border-bottom-width:4px;color:var(--ink)}
+#wipe{position:absolute;left:-400px;top:-500px;width:3400px;height:2100px;height:1700px;background:var(--accent);transform-origin:0 50%;
+  transform:rotate(-4deg) scaleX(0);z-index:50;border-radius:40px}
+#end{position:absolute;inset:0;z-index:51;display:flex;flex-direction:column;align-items:center;justify-content:center;visibility:hidden;color:var(--ink)}
+#end .lock{display:flex;align-items:center;gap:36px}
+#end .lock svg{width:150px;height:150px}
+#end .name{font:600 150px/1 "Newsreader",Georgia,serif;letter-spacing:-.03em}
+#end .tag{margin-top:40px;font:500 64px "Newsreader",Georgia,serif}
+#end .sm{margin-top:42px;font:500 30px var(--sans);color:rgba(43,47,58,.72);letter-spacing:.01em}
+
+#ui{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:none;align-items:center;gap:14px;padding:11px 18px;border-radius:16px;
+  background:rgba(14,16,22,.9);font:13px var(--sans);color:#A0A6B4;z-index:99}
+#ui.on{display:flex}
+#ui button{background:#262A34;color:#fff;border:none;padding:8px 16px;border-radius:9px;font:inherit;cursor:pointer}
+#scrub{width:340px}
+#clock{font-variant-numeric:tabular-nums;min-width:5.2ch;text-align:right}
+</style>
+</head>
+<body>
+<svg id="filters"><defs></defs></svg>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="logo" viewBox="0 0 128 128"><rect x="6" y="6" width="116" height="116" rx="26" fill="#2b2f3a"/><rect x="22" y="54" width="84" height="22" rx="5" fill="#ffd43b"/>
+    <rect x="28" y="32" width="72" height="9" rx="4.5" fill="#dee2e6"/><rect x="28" y="60.5" width="72" height="9" rx="4.5" fill="#2b2f3a"/><rect x="28" y="88" width="48" height="9" rx="4.5" fill="#dee2e6"/></symbol>
+</defs></svg>
+
+<div id="stage">
+  <div id="bg"><i class="l1"></i><i class="l2"></i></div>
+  <div id="world">
+    <div class="site"><div>Slow Reader <span>Essays on attention</span></div></div>
+    <div id="article">
+      <h1 class="fogme">Why you forget what you read</h1>
+      <p class="dek fogme">And the small habit that makes the good parts stick.</p>
+      <p class="by">8 min read · Essays on attention</p>
+      <p id="p1" class="fogme">You finish a long article feeling sharper. It was clear, it was convincing, and you agreed with most of it. Ask yourself about it next Tuesday and you will find a pleasant fog where the argument used to be.</p>
+      <p id="p-forget" class="fogme"><span class="mk" id="mk1">Most of what we read is gone within a week</span>, and the loss is steepest in the first day.</p>
+      <p class="fogme">This is not a character flaw. Memory is built to discard. Anything that is not used again is treated as noise, and an article read once, in one sitting, is almost never used again.</p>
+      <h2 class="fogme">Reading is not the same as keeping</h2>
+      <p id="p-notes" class="fogme">The readers who seem to remember everything are rarely the fastest. <span class="mk" id="mk2">They are the ones who leave a trail</span><i class="ndot" id="ndot"></i>: a highlight here, a sentence in their own words there, something they can come back to.</p>
+      <p class="fogme">A note in your own words is a small act of rebuilding the idea. That rebuilding is exactly the work memory needs.</p>
+      <figure id="fig"><svg id="curve" viewBox="0 0 640 300" width="100%">
+        <g font-family="system-ui,sans-serif" font-size="13" fill="#6f6b62">
+          <line x1="60" y1="250" x2="620" y2="250" stroke="#cfcabd"/><line x1="60" y1="20" x2="60" y2="250" stroke="#cfcabd"/>
+          <text x="20" y="30">100%</text><text x="28" y="140">50%</text><text x="36" y="252">0%</text>
+          <text x="56" y="272">read</text><text x="150" y="272">1 day</text><text x="290" y="272">1 week</text><text x="560" y="272">1 month</text></g>
+        <path id="red" d="M60 25 C 110 140, 160 180, 220 196 S 400 214, 620 220" fill="none" stroke="#c2410c" stroke-width="4"/>
+        <path id="green" d="M60 25 C 110 140, 140 150, 170 160 L170 60 C 230 110, 280 120, 330 126 L330 50 C 420 80, 520 90, 620 92" fill="none" stroke="#15803d" stroke-width="4"/>
+        <g font-family="system-ui,sans-serif" font-size="14" font-weight="600">
+          <text id="lred" x="470" y="210" fill="#c2410c">read once</text><text id="lgreen" x="430" y="78" fill="#15803d">read, noted, revisited</text></g>
+        <circle id="r1" cx="170" cy="60" r="7" fill="#ffd43b" stroke="#e0a800" stroke-width="2"/><circle id="r2" cx="330" cy="50" r="7" fill="#ffd43b" stroke="#e0a800" stroke-width="2"/>
+      </svg><figcaption>Figure 1. Retention after one reading versus reading with notes and short reviews. Illustrative.</figcaption></figure>
+      <p class="fogme">Each return trip is cheap, because you are not re-reading the whole piece. You are re-reading the two or three lines you decided mattered.</p>
+      <blockquote class="fogme">Highlights are a conversation with your future self. Keep them short enough that you will actually read them.</blockquote>
+    </div>
+    <div id="dim"></div>
+    <div id="snipbox"><span id="snipsize">0 × 0</span></div>
+    <div id="flash"></div>
+
+    <div class="toolbar" id="tb"><span class="sw"><i class="dot d-y"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i></span><span class="sep"></span>
+      <span class="tool" id="tb-note"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Note</span>
+      <span class="tool"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>Clip</span>
+      <span class="tool"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg></span></div>
+    <div class="popover" id="pop"><div class="ta"><span id="typed"></span><i class="caret" id="caret"></i></div>
+      <div class="row"><i class="dot d-y on"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i><span class="sp"></span>
+        <svg class="trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span class="done" id="done">Done</span></div></div>
+
+    <div class="clipcard" id="clipcard"></div>
+
+    <div id="panel">
+      <div class="hd">Why you forget what you read <span class="btn" id="libbtn">Library</span></div>
+      <div class="box"><div style="margin-bottom:10px"><span class="tog"></span><b>Highlighting on</b></div><span class="btn">Snip region</span> <span class="btn">Export</span></div>
+      <div class="tabs"><b>All 3</b><span>Highlights 2</span><span>Clips 1</span></div>
+      <div class="card" id="pc1"><div class="q">Most of what we read is gone within a week</div><div class="n ph">Add a note…</div><div class="tag">+ add tag</div>
+        <div class="meta">Highlight · just now<span class="ds"><i class="dot d-y on"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i></span></div></div>
+      <div class="card" id="pc2"><div class="q">They are the ones who leave a trail</div><div class="n">This is the habit. Write it in my own words.</div><div class="tag">+ add tag</div>
+        <div class="meta">Highlight · just now<span class="ds"><i class="dot d-y on"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i></span></div></div>
+      <div class="card" id="pc3"><div class="img" id="pc3img"></div><div class="meta">Clip · just now<span class="ds"><i class="dot d-y on"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i></span></div></div>
+    </div>
+
+    <div id="library"><div class="in">
+      <div class="top"><svg class="ic"><use href="#logo"/></svg><h3>Margin Notes<small>3 pages · 6 highlights · 1 clip</small></h3>
+        <div class="acts"><span class="btn" id="expbtn">Export Markdown</span><span class="btn">Back up (JSON)</span><span class="btn">Import backup</span></div></div>
+      <div class="search"><div class="field"><span id="q"></span><i class="caret" id="qcaret" style="display:inline-block;width:2px;height:24px;background:#333;margin-left:1px"></i><span class="ph" id="qph">Search highlights, notes and tags</span></div>
+        <i class="dot d-y"></i><i class="dot d-g"></i><i class="dot d-b"></i><i class="dot d-p"></i><i class="dot d-v"></i></div>
+      <div class="grp" id="g1"><div class="gh"><div><b>Why you forget what you read</b><small>slowreader.example · 3 items</small></div><span>Export</span></div>
+        <div class="cards"><div class="card lc miss"><div class="q">Most of what we read is gone within a week</div><div class="meta">Highlight · just now</div></div>
+          <div class="card lc"><div class="q">They are the ones who leave a trail</div><div class="n">This is the habit. Write it in my own words.</div><div class="meta">Highlight · just now</div></div>
+          <div class="card lc miss" style="border-left-color:#ffd43b"><div class="img" id="libimg" style="height:96px"></div><div class="meta">Clip · just now</div></div></div></div>
+      <div class="grp miss" id="g2"><div class="gh"><div><b>The case for slow reading</b><small>slowreader.example · 2 items</small></div><span>Export</span></div>
+        <div class="cards"><div class="card" style="border-left-color:#a9e5a0"><div class="q">Reading slowly is how an argument gets inside your head.</div><div class="meta">Highlight · 2 days ago</div></div>
+          <div class="card" style="border-left-color:#a5d8ff"><div class="q">Pause at the end of each section and say what it claimed.</div><div class="meta">Highlight · 2 days ago</div></div></div></div>
+      <div class="grp miss" id="g3"><div class="gh"><div><b>How to write notes you will actually reuse</b><small>slowreader.example · 2 items</small></div><span>Export</span></div>
+        <div class="cards"><div class="card" style="border-left-color:#ffb3d1"><div class="q">A good note answers one question: why did this matter to me?</div><div class="meta">Highlight · last week</div></div></div></div>
+    </div></div>
+    <div id="mdfile"><div class="fn"><i></i>why-you-forget-what-you-read.md</div><pre><span class="h"># Why you forget what you read</span>
+
+Source: &lt;http://slowreader.example/why-you-forget&gt;
+
+<span class="h">## Highlights</span>
+
+&gt; They are the ones who leave a trail
+
+This is the habit. Write it in my own words.</pre></div>
+
+    <svg id="cur" viewBox="0 0 26 30"><path d="M3 2 L3 24 L9 18.5 L13 27.5 L17 25.8 L13 17 L21 17 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div id="hud">
+    <div class="claim" id="c1" style="left:150px;top:830px"><i class="pk"></i><span class="txt">You read something great</span></div>
+    <div class="claim lg" id="c2" style="left:50%;top:430px;transform:translateX(-50%)"><i class="pk"></i><span class="txt">A week later, it's gone</span></div>
+    <div class="claim sm" id="c3" style="left:120px;top:820px"><i class="pk"></i><svg class="ic"><use href="#logo"/></svg><span class="txt">Margin Notes keeps what matters</span></div>
+    <div class="claim sm" id="c4" style="left:120px;top:120px"><i class="pk"></i><span class="txt">Say it in your own words</span></div>
+    <div class="claim sm" id="c5" style="left:120px;top:110px"><i class="pk"></i><span class="txt">Clip the chart too</span><span class="keys" id="keys"><span>Alt</span><span>Shift</span><span>S</span></span></div>
+    <div class="claim sm" id="c6" style="left:110px;top:440px"><i class="pk"></i><span class="txt">Everything you kept,</span><br><span class="txt">right beside the page</span></div>
+    <div class="claim sm" id="c7" style="left:120px;top:880px"><i class="pk"></i><span class="txt">Search it. Export it.</span></div>
+    <div class="claim lg" id="c8" style="left:110px;top:90px"><i class="pk"></i><span class="txt">Notes bring it back</span></div>
+    <div id="wipe"></div>
+    <div id="end"><div class="lock"><svg id="endlogo"><use href="#logo"/></svg><div class="name" id="endname">Margin Notes</div></div>
+      <div class="tag" id="endtag"><span class="txt">Read it once. Keep it.</span></div>
+      <div class="sm" id="endsm">For Chrome and Edge · local-first, nothing leaves your browser</div></div>
+  </div>
+  <div id="grain"></div>
+</div>
+
+<div id="ui"><button id="btn-play">Pause</button><button id="btn-restart">Restart</button>
+  <input id="scrub" type="range" min="0" max="1000" value="0"><span id="clock">0.00s</span></div>
+
+<script type="module">
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const W=1920,H=1080,DURATION=46.5;
+const Q=new URLSearchParams(location.search);
+const world=$('#world'), stage=$('#stage');
+
+/* ---------- utils: per-letter split + directional motion blur (from the skill starter) ---------- */
+const defs=$('#filters defs'); let fc=0;
+function makeBlur(){const id='mb'+(fc++),NS='http://www.w3.org/2000/svg';const f=document.createElementNS(NS,'filter');f.id=id;
+  f.setAttribute('x','-70%');f.setAttribute('y','-70%');f.setAttribute('width','240%');f.setAttribute('height','240%');
+  const g=document.createElementNS(NS,'feGaussianBlur');g.setAttribute('stdDeviation','0 0');f.appendChild(g);defs.appendChild(f);return {url:`url(#${id})`,node:g};}
+function blurTween(tl,el,at,from,to,dur,{ease='power3.out',ax=1,ay=.08}={}){const b=makeBlur(),o={v:from};
+  tl.set(el,{filter:b.url},at);tl.to(o,{v:to,duration:dur,ease,onUpdate(){b.node.setAttribute('stdDeviation',`${(o.v*ax).toFixed(2)} ${(o.v*ay).toFixed(2)}`);}},at);
+  tl.set(el,{filter:'none'},at+dur);}
+const VERT={ax:.1,ay:1};
+function splitChars(el){const words=(el.textContent||'').split(' ');el.textContent='';const out=[];
+  words.forEach((w,i)=>{const wr=document.createElement('span');wr.className='wd';
+    for(const c of w){const s=document.createElement('span');s.className='ch';s.textContent=c;wr.appendChild(s);out.push(s);}
+    el.appendChild(wr);if(i<words.length-1){const sp=document.createElement('span');sp.className='ch';sp.innerHTML='&nbsp;';el.appendChild(sp);out.push(sp);}});
+  return out;}
+// seeded PRNG: same numbers every run (no Math.random in the render path)
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- wrap article words so each can fog on its own ---------- */
+function wrapWords(root){
+  const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];while(walk.nextNode())nodes.push(walk.currentNode);
+  for(const n of nodes){if(!n.textContent.trim())continue;const frag=document.createDocumentFragment();
+    for(const part of n.textContent.split(/(\s+)/)){if(!part)continue;
+      if(/^\s+$/.test(part))frag.appendChild(document.createTextNode(part));
+      else{const s=document.createElement('span');s.className='w';s.textContent=part;frag.appendChild(s);}}
+    n.replaceWith(frag);}
+}
+$$('.fogme').forEach(wrapWords);
+
+/* ---------- camera ---------- */
+const CAM={s:1,fx:960,fy:540};
+const fit=()=>{const s=Math.min(innerWidth/W,innerHeight/H);stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+addEventListener('resize',fit);fit();
+// world-space rect of an element (measured once, with the camera at identity)
+function R(el){const wr=world.getBoundingClientRect(),k=wr.width/W,r=el.getBoundingClientRect();
+  return {x:(r.left-wr.left)/k,y:(r.top-wr.top)/k,w:r.width/k,h:r.height/k,get cx(){return this.x+this.w/2},get cy(){return this.y+this.h/2}};}
+
+/* ---------- live state read by render() ---------- */
+const SEL1={n:0,on:1}, SEL2={n:0,on:1};
+let sel1Words=[], sel2Words=[];
+
+const tl=gsap.timeline({paused:true});
+const SFX=[]; const sfx=(type,at,o={})=>SFX.push({type,at,...o});
+
+function render(t){
+  const s=CAM.s*(1+.006*Math.sin(t*.55));
+  world.style.transform=`translate(${(W/2-CAM.fx*s).toFixed(2)}px,${(H/2-CAM.fy*s).toFixed(2)}px) scale(${s.toFixed(5)})`;
+  sel1Words.forEach((w,i)=>w.classList.toggle('sel',SEL1.on&&i<SEL1.n));
+  sel2Words.forEach((w,i)=>w.classList.toggle('sel',SEL2.on&&i<SEL2.n));
+  // background motion: two light pools drift, grain shifts in steps (film grain)
+  $('#bg .l1').style.transform=`translate(${Math.sin(t*.11)*160}px,${Math.cos(t*.09)*110}px)`;
+  $('#bg .l2').style.transform=`translate(${Math.cos(t*.13)*-180}px,${Math.sin(t*.1)*120}px)`;
+  const g=Math.floor(t*12);$('#grain').style.transform=`translate(${(g*37)%64-32}px,${(g*53)%64-32}px)`;
+}
+
+/* ---------- text doors ---------- */
+const inUp=(ch,el,at,{dur=.8,st=.022}={})=>{tl.fromTo(ch,{opacity:0,yPercent:60,scaleY:1.4},{opacity:1,yPercent:0,scaleY:1,duration:dur,ease:'power4.out',stagger:st,immediateRender:false},at);blurTween(tl,el,at,26,0,dur,VERT);};
+const inLeft=(ch,el,at,{dur=.75,st=.018}={})=>{tl.fromTo(ch,{opacity:0,xPercent:-45},{opacity:1,xPercent:0,duration:dur,ease:'power4.out',stagger:st,immediateRender:false},at);blurTween(tl,el,at,46,0,dur,{ease:'power4.out'});};
+const inRight=(ch,el,at,{dur=.75,st=.018}={})=>{tl.fromTo(ch,{opacity:0,xPercent:45},{opacity:1,xPercent:0,duration:dur,ease:'power4.out',stagger:{each:st,from:'end'},immediateRender:false},at);blurTween(tl,el,at,46,0,dur,{ease:'power4.out'});};
+const inWords=(ch,el,at,{dur=.6,st=.12}={})=>{const w=$$('.wd',el);tl.set(ch,{opacity:1},at);
+  tl.fromTo(w,{opacity:0,yPercent:40,rotateX:-55},{opacity:1,yPercent:0,rotateX:0,duration:dur,ease:'back.out(1.6)',stagger:st,immediateRender:false},at);};
+const outUp=(ch,el,at,{dur=.4,st=.008}={})=>{tl.to(ch,{opacity:0,yPercent:-70,duration:dur,ease:'power2.in',stagger:st},at);blurTween(tl,el,at,0,40,dur+.1,{ease:'power2.in',...VERT});};
+const outLeft=(ch,el,at,{dur=.4,st=.008}={})=>{tl.to(ch,{opacity:0,xPercent:-60,duration:dur,ease:'power2.in',stagger:st},at);blurTween(tl,el,at,0,50,dur+.1,{ease:'power2.in'});};
+const outDown=(ch,el,at,{dur=.4,st=.008}={})=>{tl.to(ch,{opacity:0,yPercent:70,duration:dur,ease:'power2.in',stagger:st},at);blurTween(tl,el,at,0,40,dur+.1,{ease:'power2.in',...VERT});};
+// claim = one line on the screen layer with a paper pocket behind it
+function claim(id,at,out,door,exit){const el=$('#'+id);const ch=$$('.txt',el).flatMap(splitChars);const pk=$('.pk',el);
+  tl.set(el,{autoAlpha:1},at);tl.fromTo(pk,{opacity:0},{opacity:1,duration:.4,immediateRender:false},at);door(ch,el,at);
+  exit(ch,el,out);tl.to(pk,{opacity:0,duration:.35},out+.05);tl.set(el,{autoAlpha:0},out+.5);return {el,ch};}
+
+/* ---------- cursor ---------- */
+const cur=$('#cur');
+const curTo=(at,dur,x,y,ease='power2.inOut')=>tl.to(cur,{x,y,duration:dur,ease},at);
+function click(at,x,y){const r=document.createElement('i');r.className='ripple';r.style.left=x+'px';r.style.top=y+'px';world.appendChild(r);
+  tl.fromTo(r,{opacity:1,scale:.3},{opacity:0,scale:1.5,duration:.45,ease:'power1.out',immediateRender:false},at);
+  tl.fromTo(cur,{scale:1},{scale:.86,duration:.08,yoyo:true,repeat:1,immediateRender:false,transformOrigin:'0 0'},at);sfx('click',at);}
+const shot=(at,dur,s,fx,fy,ease='power2.inOut')=>{tl.to(CAM,{s,fx,fy,duration:dur,ease},at);};
+// per-word fog in a deterministic shuffled order
+function fog(words,at,spread,{to=1,dur=.9,seed=1}={}){const r=rng(seed);
+  words.forEach(w=>tl.fromTo(w,{'--f':0},{'--f':to,duration:dur,ease:'sine.inOut',immediateRender:false},at+r()*spread));}
+function defog(words,at,{dur=.5,st=.025}={}){words.forEach((w,i)=>tl.to(w,{'--f':0,duration:dur,ease:'power2.out'},at+i*st));}
+function sweep(mk,at,dur=.45){tl.fromTo(mk,{'--p':0},{'--p':1,duration:dur,ease:'power2.inOut',immediateRender:false},at);sfx('marker',at,{dur});}
+function pop(el,at,{x,y}){tl.set(el,{left:x,top:y},0);tl.fromTo(el,{opacity:0,scale:.9},{opacity:1,scale:1,duration:.18,ease:'back.out(2)',immediateRender:false},at);}
+
+function chartClone(into){const c=$('#curve').cloneNode(true);c.removeAttribute('id');c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+  const [r,g]=c.querySelectorAll('path');r.style.strokeDasharray='none';r.style.strokeDashoffset='0';g.style.display='none';
+  c.querySelectorAll('circle').forEach(e=>e.style.display='none');const t=c.querySelectorAll('text');t[t.length-1].style.display='none';t[t.length-2].style.opacity='1';into.appendChild(c);}
+function build(){
+  world.style.transform='none';
+  const p1=$$('#p1 .w'), all=$$('.fogme .w').filter(w=>!p1.includes(w));
+  sel1Words=$$('#mk1 .w'); sel2Words=$$('#mk2 .w');
+  const mk1=$('#mk1'), mk2=$('#mk2'), fig=$('#fig');
+  const rP1=R($('#p1')), rF=R($('#p-forget')), rN=R($('#p-notes')), rFig=R(fig);
+  const rw=w=>R(w);
+  const red=$('#red'), green=$('#green'), LR=red.getTotalLength(), LG=green.getTotalLength();
+  gsap.set(red,{strokeDasharray:LR,strokeDashoffset:LR}); gsap.set(green,{strokeDasharray:LG,strokeDashoffset:LG});
+  gsap.set(['#lred','#lgreen','#r1','#r2'],{opacity:0}); gsap.set(['#r1','#r2'],{transformOrigin:'50% 50%',transformBox:'fill-box'});
+  gsap.set(cur,{x:2000,y:rF.y+400,opacity:1});
+
+  /* ===== 0–4.2 hook: close on the first paragraph, its words start to slip away ===== */
+  tl.set(CAM,{s:2.05,fx:rP1.x+480,fy:rP1.cy+40},0);
+  shot(0,4.2,1.8,rP1.x+480,rP1.cy+60,'sine.inOut');
+  claim('c1',.5,3.6,inUp,outUp);
+  fog(p1,2.0,2.2,{seed:7});
+  sfx('swell',0,{dur:4});
+
+  /* ===== 4.2–7.4 problem: pull back, the whole page fogs ===== */
+  shot(4.1,1.6,1.0,960,rP1.y+320);
+  fog(all,4.2,2.4,{seed:11});
+  sfx('whoosh',4.0,{dur:1.4});
+  const c2=claim('c2',5.2,7.2,inUp,outDown);
+  // "gone" itself dissolves
+  const gone=c2.ch.slice(-4); tl.to(gone,{opacity:.12,filter:'blur(6px)',duration:.9,ease:'sine.in',stagger:.08},6.2);
+  tl.set(gone,{filter:'none'},7.9);
+
+  /* ===== 7.4–9.6 the forgetting curve: red falls ===== */
+  shot(7.2,1.3,1.35,rFig.cx,rFig.cy-10);
+  sfx('whoosh',7.1,{dur:1.2});
+  tl.to(red,{strokeDashoffset:0,duration:1.4,ease:'power2.out'},8.0);
+  tl.to('#lred',{opacity:1,duration:.4},9.0);
+  sfx('fall',8.0);
+
+  /* ===== 9.6–15.6 highlight: select, toolbar, yellow; the sentence comes back ===== */
+  const a=rw(sel1Words[0]), b=rw(sel1Words.at(-1));
+  shot(9.5,1.2,1.8,rF.x+480,rF.y+40);
+  sfx('whoosh',9.4,{dur:1.1});
+  curTo(10.4,.7,a.x-2,a.y+a.h*.55,'power3.out');
+  tl.to(SEL1,{n:sel1Words.length,duration:1.0,ease:'none',snap:{n:1}},11.2);
+  curTo(11.2,1.0,b.x+b.w,b.y+b.h*.55,'none');
+  const tb=$('#tb'); const tbx=a.x+40, tby=a.y-78;
+  pop(tb,12.35,{x:tbx,y:tby}); sfx('pop',12.35);
+  gsap.set(tb,{left:tbx,top:tby}); const yr=R($('#tb .d-y')); const yd={x:yr.cx,y:yr.cy};
+  curTo(12.5,.5,yd.x,yd.y);
+  click(13.05,yd.x,yd.y);
+  tl.set(SEL1,{on:0},13.1); tl.to(tb,{opacity:0,duration:.15},13.1);
+  sweep(mk1,13.12); defog(sel1Words,13.15);
+  defog($$('#p-forget .w').filter(w=>!sel1Words.includes(w)),13.6,{dur:.6,st:.01}); // the rest of its line follows, a little
+  claim('c3',13.8,15.5,inLeft,outLeft);
+  shot(13.3,2.3,1.9,rF.x+480,rF.y+40,'sine.inOut');
+
+  /* ===== 15.6–21.9 note ===== */
+  const c=rw(sel2Words[0]), d=rw(sel2Words.at(-1));
+  shot(15.6,.9,1.75,rN.x+520,rN.y+130);
+  sfx('whoosh',15.5,{dur:.9});
+  curTo(15.7,.8,c.x-2,c.y+c.h*.55);
+  tl.to(SEL2,{n:sel2Words.length,duration:.9,ease:'none',snap:{n:1}},16.6);
+  curTo(16.6,.9,d.x+d.w,d.y+d.h*.55,'none');
+  const tb2x=Math.min(c.x+30,rN.x+960-420), tb2y=c.y-78;
+  gsap.set(tb,{left:tb2x,top:tb2y}); const nb=R($('#tb-note')); gsap.set(tb,{left:tbx,top:tby});
+  tl.set(tb,{left:tb2x,top:tb2y},17.5); tl.fromTo(tb,{opacity:0,scale:.9},{opacity:1,scale:1,duration:.18,ease:'back.out(2)',immediateRender:false},17.6); sfx('pop',17.6);
+  const noteBtn={x:nb.cx,y:nb.cy};
+  curTo(17.75,.5,noteBtn.x,noteBtn.y);
+  click(18.3,noteBtn.x,noteBtn.y);
+  tl.set(SEL2,{on:0},18.35); tl.to(tb,{opacity:0,duration:.15},18.35);
+  sweep(mk2,18.37); defog(sel2Words,18.4);
+  const pop2=$('#pop'), px=d.x-120, py=d.y+d.h+14;
+  pop(pop2,18.5,{x:px,y:py}); sfx('pop',18.5);
+  const note='This is the habit. Write it in my own words.', typed=$('#typed'), o={i:0};
+  tl.fromTo(o,{i:0},{i:note.length,duration:2.3,ease:'none',immediateRender:false,onUpdate(){typed.textContent=note.slice(0,Math.round(o.i));}},18.75);
+  for(let k=0;k<note.length;k++) if(note[k]!==' ') sfx('key',18.75+k*(2.3/note.length),{k});
+  tl.to('#caret',{opacity:0,duration:.01,repeat:9,yoyo:true,repeatDelay:.25},18.6);
+  curTo(18.6,.6,px+250,py+230,'sine.inOut');
+  const doneP={x:px+420-13-40,y:py+13+110+4+11+20};
+  curTo(20.9,.6,doneP.x,doneP.y);
+  click(21.55,doneP.x,doneP.y);
+  tl.to(pop2,{opacity:0,scale:.95,duration:.18},21.6);
+  tl.fromTo('#ndot',{opacity:0,scale:0},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},21.7);
+  claim('c4',18.9,21.4,inRight,outUp);
+  shot(18.4,3.0,1.95,px+210,py+40,'sine.inOut');
+
+  /* ===== 21.9–26.4 snip ===== */
+  shot(21.9,1.0,1.18,rFig.cx,rFig.cy+40);
+  sfx('whoosh',21.8,{dur:1});
+  tl.to(cur,{opacity:0,duration:.2},22.0); tl.set(cur,{x:rFig.x+6,y:rFig.y+4},22.3); tl.to(cur,{opacity:1,duration:.2},22.6);
+  tl.set('#dim',{top:rFig.y-900,height:rFig.h+1800,left:-200,width:2400},0);
+  tl.to('#dim',{opacity:1,duration:.3},22.9); sfx('pop',22.9,{soft:1});
+  const sb=$('#snipbox'), sz={w:0,h:0}, ssz=$('#snipsize');
+  tl.set(sb,{left:rFig.x+6,top:rFig.y+4,width:0,height:0,opacity:1},23.1);
+  tl.fromTo(sz,{w:0,h:0},{w:rFig.w-12,h:rFig.h-8,duration:1.0,ease:'power1.inOut',immediateRender:false,
+    onUpdate(){sb.style.width=sz.w+'px';sb.style.height=sz.h+'px';ssz.textContent=`${Math.round(sz.w/1.333)} × ${Math.round(sz.h/1.333)}`;}},23.1);
+  curTo(23.1,1.0,rFig.x+rFig.w-6,rFig.y+rFig.h-4,'power1.inOut');
+  tl.set('#flash',{left:rFig.x,top:rFig.y,width:rFig.w,height:rFig.h},0);
+  tl.fromTo('#flash',{opacity:0},{opacity:.9,duration:.06,yoyo:true,repeat:1,immediateRender:false},24.2); sfx('shutter',24.2);
+  tl.to(['#dim',sb],{opacity:0,duration:.2},24.3);
+  const cc=$('#clipcard'); chartClone(cc);
+  gsap.set(cc,{left:rFig.x,top:rFig.y,width:rFig.w,height:rFig.h-50});
+  tl.fromTo(cc,{opacity:0,scale:1,rotate:0},{opacity:1,scale:.9,rotate:-2,x:30,y:20,duration:.7,ease:'back.out(1.4)',immediateRender:false},24.3);
+  tl.to(cur,{opacity:0,duration:.2},24.5);
+  claim('c5',24.6,26.3,inUp,outLeft);
+  tl.set('#keys',{opacity:0},0); tl.to('#keys',{opacity:1,duration:.3},25.0);
+
+  /* ===== 26.4–30.6 side panel ===== */
+  const panel=$('#panel'); const pTop=rFig.y-430; gsap.set(panel,{top:pTop});
+  shot(26.3,1.1,1.0,960,pTop+500);
+  tl.fromTo(panel,{opacity:1,x:520},{x:0,duration:.8,ease:'power3.out',immediateRender:false},26.5); sfx('whoosh',26.4,{dur:.9});
+  const rp1=R($('#pc1')), rp2=R($('#pc2')), img=R($('#pc3img'));
+  // highlight cards fly in from their sentences (positions measured with panel at rest)
+  [[$('#pc1'),rF,27.25],[$('#pc2'),rN,27.45]].forEach(([el,src,at])=>{const r=R(el);
+    tl.fromTo(el,{opacity:0,x:src.x+200-r.x,y:src.y-r.y,scale:.6},{opacity:1,x:0,y:0,scale:1,duration:.75,ease:'power3.inOut',immediateRender:false},at);sfx('fly',at);});
+  chartClone($('#pc3img')); chartClone($('#libimg'));
+  // the clip lands as the third card
+  const k=img.w/rFig.w;
+  tl.to(cc,{left:img.x-29*k,top:img.y-29*k,x:0,y:0,rotate:0,scale:k,duration:.8,ease:'power3.inOut'},27.65); sfx('fly',27.65);
+  tl.fromTo('#pc3',{opacity:0},{opacity:1,duration:.15,immediateRender:false},28.4); tl.to(cc,{opacity:0,duration:.15},28.45);
+  shot(28.5,.9,1.55,1560,pTop+440);
+  claim('c6',28.9,30.7,inLeft,outDown);
+
+  /* ===== 30.6–36.4 library ===== */
+  const lb=R($('#libbtn'));
+  tl.set(cur,{x:lb.cx+140,y:lb.cy+180},29.6); tl.to(cur,{opacity:1,duration:.2},29.7);
+  curTo(30.0,.7,lb.cx,lb.cy);
+  click(30.8,lb.cx,lb.cy);
+  const lib=$('#library'); gsap.set(lib,{top:pTop});
+  tl.set(lib,{visibility:'visible'},30.9);
+  tl.fromTo(lib,{clipPath:'inset(0px 0px 0px 1380px round 16px)'},{clipPath:'inset(0px 0px 0px 0px round 16px)',duration:.75,ease:'power3.inOut',immediateRender:false},30.9);
+  shot(30.9,.9,1.0,960,pTop+500); sfx('whoosh',30.85,{dur:.9});
+  tl.to(cur,{opacity:0,duration:.15},31.0);
+  const fld=R($('#library .field'));
+  shot(31.8,.8,1.6,fld.x+520,fld.cy+190);
+  const qs='habit', qel=$('#q'), qo={i:0};
+  tl.set('#qph',{display:'none'},32.5);
+  tl.fromTo(qo,{i:0},{i:qs.length,duration:.6,ease:'none',immediateRender:false,onUpdate(){qel.textContent=qs.slice(0,Math.round(qo.i));}},32.5);
+  for(let i=0;i<qs.length;i++) sfx('key',32.5+i*.12,{k:i});
+  // cards that don't match fold away
+  tl.to($$('#library .miss'),{opacity:0,scale:.92,duration:.35,ease:'power2.in',stagger:.05},33.3);
+  tl.set($$('#library .lc.miss'),{display:'none'},33.75); sfx('fold',33.3);
+  tl.fromTo($$('#library .lc:not(.miss)'),{boxShadow:'0 0 0 0 rgba(255,212,59,0)'},{boxShadow:'0 0 0 6px rgba(255,212,59,.6)',duration:.4,yoyo:true,repeat:1,immediateRender:false},33.8);
+  const ex=R($('#expbtn'));
+  tl.set(cur,{x:ex.cx-80,y:ex.cy+170},34.0); tl.to(cur,{opacity:1,duration:.15},34.0);
+  shot(34.0,.8,1.5,ex.cx-200,ex.cy+260);
+  curTo(34.1,.6,ex.cx,ex.cy);
+  click(34.85,ex.cx,ex.cy);
+  const md=$('#mdfile'); gsap.set(md,{left:ex.cx-420,top:ex.cy+60});
+  tl.fromTo(md,{opacity:0,y:-40,scale:.85,rotate:2},{opacity:1,y:0,scale:1,rotate:-1.5,duration:.6,ease:'back.out(1.6)',immediateRender:false},34.95); sfx('pop',34.95);
+  claim('c7',35.0,36.6,inUp,outUp);
+  tl.to(cur,{opacity:0,duration:.2},35.3);
+
+  /* ===== 36.6–40.8 big moment: the green line comes back ===== */
+  tl.to(md,{opacity:0,y:-30,duration:.3},36.5);
+  tl.to(lib,{clipPath:'inset(0px 0px 0px 1380px round 16px)',duration:.6,ease:'power3.inOut'},36.5);
+  tl.to(panel,{x:520,duration:.6,ease:'power3.in'},36.8);
+  tl.set(lib,{visibility:'hidden'},37.15);
+  shot(36.7,1.1,1.35,rFig.cx,rFig.cy-10,'power3.inOut'); sfx('whoosh',36.6,{dur:1.1});
+  tl.to(green,{strokeDashoffset:0,duration:2.6,ease:'none'},37.9);
+  // snaps upward land on yellow dots = a highlight, a revisit
+  const gl=t=>37.9+2.6*t;
+  tl.fromTo('#r1',{opacity:0,scale:0},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},gl(.33)); sfx('rise',gl(.30));
+  tl.fromTo('#r2',{opacity:0,scale:0},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},gl(.62)); sfx('rise',gl(.60),{up:1});
+  tl.to('#lgreen',{opacity:1,duration:.4},40.2);
+  tl.to('#red',{opacity:.35,duration:.6},38.5); tl.to('#lred',{opacity:.35,duration:.6},38.5);
+  claim('c8',38.3,40.7,inWords,outUp);
+  shot(38.0,2.8,1.5,rFig.cx+40,rFig.cy-30,'sine.inOut');
+
+  /* ===== 40.8–46.5 highlighter wipe to the end card ===== */
+  tl.fromTo('#wipe',{scaleX:0},{scaleX:1,duration:.65,ease:'power3.inOut',immediateRender:false},40.8); sfx('marker',40.8,{dur:.6,big:1});
+  tl.set('#end',{visibility:'visible'},41.4);
+  tl.fromTo('#endlogo',{opacity:0,scale:.6,rotate:-8},{opacity:1,scale:1,rotate:0,duration:.7,ease:'back.out(1.8)',immediateRender:false},41.5);
+  const nm=splitChars($('#endname')); inUp(nm,$('#endname'),41.65,{dur:.9,st:.03});
+  const tg=splitChars($('#endtag .txt')); inWords(tg,$('#endtag'),42.6,{st:.14});
+  tl.fromTo('#endsm',{opacity:0,y:16},{opacity:1,y:0,duration:.6,ease:'power2.out',immediateRender:false},43.6);
+  tl.fromTo('#end',{scale:1},{scale:1.04,duration:5,ease:'sine.inOut',immediateRender:false},41.4);
+  sfx('chime',41.6);
+  tl.to({},{duration:.01},DURATION-.01);
+}
+
+/* ================= AUDIO: score + effects rendered offline from the same event list ================= */
+const SR=44100;
+async function buildAudio(){
+  const ctx=new OfflineAudioContext(2,Math.ceil(SR*DURATION),SR);
+  const r=rng(42);
+  const noise=ctx.createBuffer(1,SR*2,SR);{const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=r()*2-1;}
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.connect(ctx.destination);
+  const master=ctx.createGain();master.gain.value=1.6;master.connect(comp);
+  // fade out the last second
+  master.gain.setValueAtTime(1.6,DURATION-1.4);master.gain.linearRampToValueAtTime(0,DURATION);
+  // small generated reverb
+  const ir=ctx.createBuffer(2,SR*2.4,SR);for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<d.length;i++)d[i]=(r()*2-1)*Math.pow(1-i/d.length,3);}
+  const verb=ctx.createConvolver();verb.buffer=ir;const vg=ctx.createGain();vg.gain.value=.32;verb.connect(vg);vg.connect(master);
+  const bus=(g,wet=.5)=>{const n=ctx.createGain();n.gain.value=g;n.connect(master);if(wet){const w=ctx.createGain();w.gain.value=wet;n.connect(w);w.connect(verb);}return n;};
+  const musicBus=bus(1,.6), fxBus=bus(1,.25);
+  const env=(g,t,a,hold,rel,peak)=>{g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.setValueAtTime(peak,t+a+hold);g.gain.exponentialRampToValueAtTime(.0001,t+a+hold+rel);};
+  const noiseSrc=(t,dur)=>{const s=ctx.createBufferSource();s.buffer=noise;s.loop=true;s.start(t,r()*1.5);s.stop(t+dur+.05);return s;};
+
+  // ---- score: 96 bpm, F major. Problem section is darker (Dm9 -> Bbmaj7), product section lifts.
+  const N=m=>440*Math.pow(2,(m-69)/12);
+  const CH={F:[53,57,60,64,67],Am:[57,60,64,67,72],Dm:[50,53,57,60,64],Bb:[46,53,57,62,65],C:[48,55,60,64,67]};
+  const BASS={F:41,Am:45,Dm:38,Bb:34,C:36};
+  function pad(t,dur,name,cut,g){for(const m of CH[name]){for(const det of[-6,6]){const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=N(m);o.detune.value=det;
+      const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=cut;f.Q.value=.3;const gg=ctx.createGain();env(gg,t,1.2,Math.max(.1,dur-1.2),1.8,g);
+      o.connect(f);f.connect(gg);gg.connect(musicBus);o.start(t);o.stop(t+dur+2);}}
+    const b=ctx.createOscillator();b.type='sine';b.frequency.value=N(BASS[name]);const bg=ctx.createGain();env(bg,t,.4,dur-.6,1.2,.11);b.connect(bg);bg.connect(musicBus);b.start(t);b.stop(t+dur+1.4);}
+  function pluck(t,m,g){const o=ctx.createOscillator();o.type='triangle';o.frequency.value=N(m);const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=2600;
+    const gg=ctx.createGain();gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+.55);
+    o.connect(f);f.connect(gg);gg.connect(musicBus);o.start(t);o.stop(t+.6);}
+  function kick(t,g=.32){const o=ctx.createOscillator();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(42,t+.18);
+    const gg=ctx.createGain();gg.gain.setValueAtTime(g,t);gg.gain.exponentialRampToValueAtTime(.0001,t+.32);o.connect(gg);gg.connect(master);o.start(t);o.stop(t+.35);}
+  function hat(t,g=.035){const s=noiseSrc(t,.06);const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=7500;const gg=ctx.createGain();
+    gg.gain.setValueAtTime(g,t);gg.gain.exponentialRampToValueAtTime(.0001,t+.05);s.connect(f);f.connect(gg);gg.connect(master);}
+  const B=60/96;
+  // problem: two dark chords, low cutoff
+  pad(0,5,'Dm',700,.018); pad(5,5.2,'Bb',800,.018);
+  // product: loop F Am Dm Bb from 10.2, every 8 beats
+  const prog=['F','Am','Dm','Bb'], start=10.2, bar8=8*B;
+  for(let i=0;start+i*bar8<40.8;i++){const name=prog[i%4], t=start+i*bar8, dur=Math.min(bar8,40.8-t)+.2;
+    pad(t,dur,name,1400+i*120,.016);
+    const tones=CH[name].map(m=>m+12), pat=[0,2,4,3,1,3,2,4];
+    for(let s=0;s<16;s++){const tt=t+s*B/2;if(tt>=40.7)break;pluck(tt,tones[pat[s%8]],.045*(s%2?0.7:1));}
+    for(let s=0;s<8;s++){const tt=t+s*B;if(tt>=40.6||tt<13)continue;if(s%2===0)kick(tt,.22);if(tt>15.5)hat(tt+B/2);}}
+  // end: resolve on F, bright
+  pad(40.8,4.2,'F',2600,.022);
+  // soft riser into the wipe
+  {const s=noiseSrc(38.8,2.0),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;f.frequency.setValueAtTime(400,38.8);f.frequency.exponentialRampToValueAtTime(5000,40.8);
+   const g=ctx.createGain();g.gain.setValueAtTime(0,38.8);g.gain.linearRampToValueAtTime(.09,40.75);g.gain.linearRampToValueAtTime(0,40.95);s.connect(f);f.connect(g);g.connect(fxBus);}
+
+  // ---- effects from the timeline's event list
+  for(const e of SFX){const t=e.at;
+    if(e.type==='click'){const o=ctx.createOscillator();o.frequency.value=2100;const g=ctx.createGain();g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.035);o.connect(g);g.connect(fxBus);o.start(t);o.stop(t+.05);
+      const s=noiseSrc(t,.03),f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=3000;const g2=ctx.createGain();g2.gain.setValueAtTime(.12,t);g2.gain.exponentialRampToValueAtTime(.0001,t+.025);s.connect(f);f.connect(g2);g2.connect(fxBus);}
+    else if(e.type==='key'){const s=noiseSrc(t,.04),f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=1800+((e.k*137)%900);f.Q.value=2;
+      const g=ctx.createGain();g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.0001,t+.03);s.connect(f);f.connect(g);g.connect(fxBus);}
+    else if(e.type==='marker'){const d=e.dur||.45,s=noiseSrc(t,d+.1),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=e.big?1.5:3;
+      f.frequency.setValueAtTime(e.big?500:1200,t);f.frequency.exponentialRampToValueAtTime(e.big?3200:4200,t+d);
+      const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(e.big?.16:.11,t+.05);g.gain.linearRampToValueAtTime(0,t+d+.05);s.connect(f);f.connect(g);g.connect(fxBus);}
+    else if(e.type==='whoosh'||e.type==='swell'){const d=e.dur||1,s=noiseSrc(t,d),f=ctx.createBiquadFilter();f.type='lowpass';f.Q.value=.7;
+      f.frequency.setValueAtTime(250,t);f.frequency.exponentialRampToValueAtTime(e.type==='swell'?900:2200,t+d*.55);f.frequency.exponentialRampToValueAtTime(250,t+d);
+      const g=ctx.createGain();const pk=e.type==='swell'?.05:.07;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(pk,t+d*.5);g.gain.linearRampToValueAtTime(0,t+d);s.connect(f);f.connect(g);g.connect(fxBus);}
+    else if(e.type==='pop'){const o=ctx.createOscillator();o.type='sine';o.frequency.setValueAtTime(e.soft?500:700,t);o.frequency.exponentialRampToValueAtTime(e.soft?300:1100,t+.08);
+      const g=ctx.createGain();g.gain.setValueAtTime(e.soft?.05:.08,t);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.connect(g);g.connect(fxBus);o.start(t);o.stop(t+.16);}
+    else if(e.type==='fly'||e.type==='fold'){const s=noiseSrc(t,.4),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=1;f.frequency.setValueAtTime(e.type==='fold'?2500:900,t);
+      f.frequency.exponentialRampToValueAtTime(e.type==='fold'?600:2600,t+.35);const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.06,t+.12);g.gain.linearRampToValueAtTime(0,t+.4);s.connect(f);f.connect(g);g.connect(fxBus);}
+    else if(e.type==='shutter'){for(const dt of[0,.07]){const s=noiseSrc(t+dt,.05),f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=2200;f.Q.value=.8;
+      const g=ctx.createGain();g.gain.setValueAtTime(.2,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.045);s.connect(f);f.connect(g);g.connect(fxBus);}}
+    else if(e.type==='fall'){const o=ctx.createOscillator();o.type='sine';o.frequency.setValueAtTime(N(69),t);o.frequency.exponentialRampToValueAtTime(N(45),t+1.4);
+      const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.1);g.gain.exponentialRampToValueAtTime(.0001,t+1.5);o.connect(g);g.connect(fxBus);o.start(t);o.stop(t+1.6);}
+    else if(e.type==='rise'){for(const [m,dt] of (e.up?[[76,0],[81,.08]]:[[72,0],[76,.08]])){const o=ctx.createOscillator();o.type='sine';o.frequency.value=N(m);
+      const g=ctx.createGain();g.gain.setValueAtTime(0,t+dt);g.gain.linearRampToValueAtTime(.07,t+dt+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.9);o.connect(g);g.connect(fxBus);o.start(t+dt);o.stop(t+dt+1);}}
+    else if(e.type==='chime'){for(const [m,dt,gn] of [[77,0,.07],[84,.09,.05],[89,.18,.035]]){const o=ctx.createOscillator();o.type='sine';o.frequency.value=N(m);
+      const g=ctx.createGain();g.gain.setValueAtTime(0,t+dt);g.gain.linearRampToValueAtTime(gn,t+dt+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dt+2.6);o.connect(g);g.connect(fxBus);o.start(t+dt);o.stop(t+dt+2.7);}}
+  }
+  return ctx.startRendering();
+}
+function wavBase64(buf){const ch=buf.numberOfChannels,len=buf.length,data=new DataView(new ArrayBuffer(44+len*ch*2));
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)data.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');data.setUint32(4,36+len*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');data.setUint32(16,16,true);data.setUint16(20,1,true);data.setUint16(22,ch,true);
+  data.setUint32(24,buf.sampleRate,true);data.setUint32(28,buf.sampleRate*ch*2,true);data.setUint16(32,ch*2,true);data.setUint16(34,16,true);ws(36,'data');data.setUint32(40,len*ch*2,true);
+  const cs=[...Array(ch)].map((_,c)=>buf.getChannelData(c));let o=44;for(let i=0;i<len;i++)for(let c=0;c<ch;c++){const v=Math.max(-1,Math.min(1,cs[c][i]));data.setInt16(o,v<0?v*0x8000:v*0x7fff,true);o+=2;}
+  const bytes=new Uint8Array(data.buffer);let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(s);}
+
+/* ================= glue: autoplay with sound, loop, hidden controls ================= */
+let actx=null, abuf=null, asrc=null;
+function audioStop(){if(asrc){try{asrc.stop();}catch(e){}asrc=null;}}
+function audioStart(){if(!actx||!abuf||actx.state!=='running')return;audioStop();asrc=actx.createBufferSource();asrc.buffer=abuf;asrc.connect(actx.destination);asrc.start(0,Math.min(tl.time(),DURATION-.01));}
+function play(from){if(from!=null)tl.time(from);tl.play();audioStart();}
+function pause(){tl.pause();audioStop();}
+const clock=$('#clock'),scrub=$('#scrub'),btn=$('#btn-play');let scrubbing=false;
+(function frame(){const t=tl.time();render(t);clock.textContent=t.toFixed(2)+'s';if(!scrubbing)scrub.value=String(t/DURATION*1000);requestAnimationFrame(frame);})();
+const toggle=()=>{if(tl.paused()){if(tl.progress()>=1)tl.progress(0);play();btn.textContent='Pause';}else{pause();btn.textContent='Play';}};
+btn.onclick=toggle;$('#btn-restart').onclick=()=>{play(0);btn.textContent='Pause';};
+scrub.addEventListener('pointerdown',()=>{scrubbing=true;pause();btn.textContent='Play';});addEventListener('pointerup',()=>scrubbing=false);
+scrub.addEventListener('input',()=>{tl.pause();tl.time(scrub.value/1000*DURATION);});
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();toggle();}if(/^[rR]$/.test(e.key))play(0);if(/^[hH]$/.test(e.key))$('#ui').classList.toggle('on');});
+if(Q.has('debug'))$('#ui').classList.add('on');
+tl.eventCallback('onComplete',()=>play(0));
+
+const seek=t=>{tl.pause();tl.time(t,false);if(gsap.ticker.tick)gsap.ticker.tick();render(t);};
+window.OPENER={W,H,tl,DURATION,seek,ready:false,audioReady:false,audioWav:()=>abuf?wavBase64(abuf):null};
+
+document.fonts.ready.then(async()=>{
+  build(); seek(0);
+  window.OPENER.ready=true;
+  abuf=await buildAudio(); window.OPENER.audioReady=true;
+  if(Q.has('clean'))return;
+  // try to start with sound; if the browser blocks it, hold on frame 0 and start on the first gesture
+  actx=new AudioContext();
+  try{await Promise.race([actx.resume(),new Promise(r=>setTimeout(r,300))]);}catch(e){}
+  if(actx.state==='running'){play(0);}
+  else{const go=async()=>{removeEventListener('pointerdown',go);removeEventListener('keydown',go);await actx.resume();play(0);};
+    addEventListener('pointerdown',go);addEventListener('keydown',go);}
+});
+</script>
+</body>
+</html>
