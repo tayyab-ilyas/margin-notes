@@ -140,6 +140,27 @@ html,body{width:100%;height:100%;background:var(--paper);overflow:hidden;color:v
 #mdfile pre{padding:0 22px;white-space:pre-wrap;font:inherit}
 #mdfile .h{color:#1d1d1f;font-weight:700}
 
+/* chat app (generic, unbranded) asking the MCP tools */
+#chat{position:absolute;left:640px;width:1000px;height:760px;background:#fff;border-radius:22px;z-index:13;overflow:hidden;opacity:0;
+  box-shadow:0 40px 90px rgba(43,47,58,.22),0 0 0 1px #e7e3da;font:27px/1.45 var(--sans);color:#1d1d1f}
+#chat .ct-hd{height:64px;display:flex;align-items:center;gap:10px;padding:0 24px;background:#f6f4ef;border-bottom:1px solid #ebe7de;font:600 22px var(--sans);color:#55524b}
+#chat .ct-hd i{width:14px;height:14px;border-radius:50%;background:#dcd8cf}
+#chat .ct-hd .t{margin-left:10px}
+#chat .ct-hd .on{margin-left:auto;display:flex;align-items:center;gap:8px;font-weight:500;font-size:20px;color:#2f7d43}
+#chat .ct-hd .on b{width:10px;height:10px;border-radius:50%;background:#2f9e44}
+#chat .ct-body{padding:30px 36px}
+#chat .me{margin-left:auto;width:max-content;max-width:80%;background:var(--ink);color:#fff;padding:14px 22px;border-radius:22px 22px 6px 22px;opacity:0}
+#chat .tool{display:flex;align-items:center;gap:12px;margin:24px 0 18px;width:max-content;padding:9px 18px;border-radius:999px;background:#f3f1ec;border:1px solid #e4e0d6;
+  font:500 21px ui-monospace,Consolas,monospace;color:#55524b;opacity:0}
+#chat .tool .spin{width:20px;height:20px;border-radius:50%;border:3px solid #d6d2c8;border-top-color:var(--ink)}
+#chat .tool .ok{display:none;width:22px;height:22px;border-radius:50%;background:#2f9e44;color:#fff;font:700 15px var(--sans);text-align:center;line-height:22px}
+#chat .tool .res{color:#2f7d43;opacity:0}
+#chat .ai .w{opacity:0}
+#chat .ai mark{background:rgba(255,212,0,0);color:inherit}
+#chat .thumb{margin-top:16px;width:380px;height:178px;border:1px solid #e7e3da;border-radius:12px;padding:10px 12px;opacity:0;background:#fff}
+#chat .ct-in{position:absolute;left:24px;right:24px;bottom:22px;height:70px;border:2px solid #e4e0d6;border-radius:18px;display:flex;align-items:center;padding:0 12px 0 22px;font-size:26px}
+#chat .ct-in .ph{color:#aaa}
+#chat .ct-in .send{margin-left:auto;width:46px;height:46px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 24px var(--sans)}
 #cur{position:absolute;left:0;top:0;width:36px;height:42px;z-index:20;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));opacity:0}
 .ripple{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(59,130,246,.35);opacity:0;z-index:19}
 
@@ -255,6 +276,17 @@ Source: &lt;http://slowreader.example/why-you-forget&gt;
 
 This is the habit. Write it in my own words.</pre></div>
 
+    <div id="chat">
+      <div class="ct-hd"><i></i><i></i><i></i><span class="t">Chat</span><span class="on"><b></b>margin-notes</span></div>
+      <div class="ct-body">
+        <div class="me" id="m-user">What did I save about memory habits?</div>
+        <div class="tool" id="m-tool"><span class="spin" id="m-spin"></span><span class="ok" id="m-ok">✓</span>margin-notes · search_notes<span class="res" id="m-res">2 results</span></div>
+        <div class="ai" id="m-ai">On “Why you forget what you read” you highlighted <mark>They are the ones who leave a trail</mark> and wrote: “This is the habit. Write it in my own words.” You also clipped the forgetting curve:
+          <div class="thumb" id="m-clip"></div></div>
+      </div>
+      <div class="ct-in"><span id="ct-typed"></span><i class="caret" id="ct-caret" style="display:inline-block;width:2px;height:30px;background:#333;margin-left:1px"></i><span class="ph" id="ct-ph">Ask anything</span><span class="send" id="ct-send">↑</span></div>
+    </div>
+
     <svg id="cur" viewBox="0 0 26 30"><path d="M3 2 L3 24 L9 18.5 L13 27.5 L17 25.8 L13 17 L21 17 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
   </div>
 
@@ -266,11 +298,12 @@ This is the habit. Write it in my own words.</pre></div>
     <div class="claim sm" id="c5" style="left:120px;top:110px"><i class="pk"></i><span class="txt">Clip the chart too</span><span class="keys" id="keys"><span>Alt</span><span>Shift</span><span>S</span></span></div>
     <div class="claim sm" id="c6" style="left:110px;top:440px"><i class="pk"></i><span class="txt">Everything you kept,</span><br><span class="txt">right beside the page</span></div>
     <div class="claim sm" id="c7" style="left:120px;top:880px"><i class="pk"></i><span class="txt">Search it. Export it.</span></div>
+    <div class="claim sm" id="c9" style="left:90px;top:400px"><i class="pk"></i><span class="txt">Ask your notes</span><br><span class="txt">from any chat app</span></div>
     <div class="claim lg" id="c8" style="left:110px;top:90px"><i class="pk"></i><span class="txt">Notes bring it back</span></div>
     <div id="wipe"></div>
     <div id="end"><div class="lock"><svg id="endlogo"><use href="#logo"/></svg><div class="name" id="endname">Margin Notes</div></div>
       <div class="tag" id="endtag"><span class="txt">Read it once. Keep it.</span></div>
-      <div class="sm" id="endsm">For Chrome and Edge · local-first, nothing leaves your browser</div></div>
+      <div class="sm" id="endsm">For Chrome and Edge · local-first · works with your chat app</div></div>
   </div>
   <div id="grain"></div>
 </div>
@@ -280,7 +313,7 @@ This is the habit. Write it in my own words.</pre></div>
 
 <script type="module">
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const W=1920,H=1080,DURATION=46.5;
+const W=1920,H=1080,DURATION=53.5;
 const Q=new URLSearchParams(location.search);
 const world=$('#world'), stage=$('#stage');
 
@@ -311,6 +344,7 @@ function wrapWords(root){
     n.replaceWith(frag);}
 }
 $$('.fogme').forEach(wrapWords);
+wrapWords($('#m-ai'));
 
 /* ---------- camera ---------- */
 const CAM={s:1,fx:960,fy:540};
@@ -481,7 +515,7 @@ function build(){
   // highlight cards fly in from their sentences (positions measured with panel at rest)
   [[$('#pc1'),rF,27.25],[$('#pc2'),rN,27.45]].forEach(([el,src,at])=>{const r=R(el);
     tl.fromTo(el,{opacity:0,x:src.x+200-r.x,y:src.y-r.y,scale:.6},{opacity:1,x:0,y:0,scale:1,duration:.75,ease:'power3.inOut',immediateRender:false},at);sfx('fly',at);});
-  chartClone($('#pc3img')); chartClone($('#libimg'));
+  chartClone($('#pc3img')); chartClone($('#libimg')); chartClone($('#m-clip'));
   // the clip lands as the third card
   const k=img.w/rFig.w;
   tl.to(cc,{left:img.x-29*k,top:img.y-29*k,x:0,y:0,rotate:0,scale:k,duration:.8,ease:'power3.inOut'},27.65); sfx('fly',27.65);
@@ -519,31 +553,60 @@ function build(){
   claim('c7',35.0,36.6,inUp,outUp);
   tl.to(cur,{opacity:0,duration:.2},35.3);
 
-  /* ===== 36.6–40.8 big moment: the green line comes back ===== */
+  /* ===== 36.5–43.5 chat app: ask the notes through MCP ===== */
   tl.to(md,{opacity:0,y:-30,duration:.3},36.5);
   tl.to(lib,{clipPath:'inset(0px 0px 0px 1380px round 16px)',duration:.6,ease:'power3.inOut'},36.5);
   tl.to(panel,{x:520,duration:.6,ease:'power3.in'},36.8);
   tl.set(lib,{visibility:'hidden'},37.15);
-  shot(36.7,1.1,1.35,rFig.cx,rFig.cy-10,'power3.inOut'); sfx('whoosh',36.6,{dur:1.1});
-  tl.to(green,{strokeDashoffset:0,duration:2.6,ease:'none'},37.9);
+  const chat=$('#chat'); gsap.set(chat,{top:pTop+120});
+  shot(36.6,1.0,1.0,960,pTop+500); sfx('whoosh',36.6,{dur:1});
+  tl.fromTo(chat,{opacity:0,y:140,scale:.94},{opacity:1,y:0,scale:1,duration:.8,ease:'back.out(1.3)',immediateRender:false},36.9);
+  claim('c9',37.6,42.9,inLeft,outLeft);
+  // the question is typed and sent
+  const ask='What did I save about memory habits?', cty=$('#ct-typed'), co={i:0};
+  tl.set('#ct-ph',{display:'none'},37.7);
+  tl.fromTo(co,{i:0},{i:ask.length,duration:1.3,ease:'none',immediateRender:false,onUpdate(){cty.textContent=ask.slice(0,Math.round(co.i));}},37.7);
+  for(let k=0;k<ask.length;k++) if(ask[k]!==' ') sfx('key',37.7+k*(1.3/ask.length),{k});
+  tl.fromTo('#ct-send',{scale:1},{scale:.85,duration:.08,yoyo:true,repeat:1,immediateRender:false},39.1); sfx('click',39.1);
+  // sent: the input empties (co back to 0) and the bubble appears
+  tl.to(co,{i:0,duration:.01,onUpdate(){cty.textContent=ask.slice(0,Math.round(co.i));}},39.15); tl.set('#ct-ph',{display:'inline'},39.16);
+  tl.fromTo('#m-user',{opacity:0,y:20},{opacity:1,y:0,duration:.35,ease:'power3.out',immediateRender:false},39.2); sfx('pop',39.2);
+  // the chat app calls the Margin Notes tool
+  tl.fromTo('#m-tool',{opacity:0,y:12},{opacity:1,y:0,duration:.3,ease:'power2.out',immediateRender:false},39.6); sfx('fly',39.6);
+  tl.fromTo('#m-spin',{rotate:0},{rotate:720,duration:.8,ease:'none',immediateRender:false},39.6);
+  tl.set('#m-spin',{display:'none'},40.4); tl.set('#m-ok',{display:'inline-block'},40.4);
+  tl.to('#m-res',{opacity:1,duration:.25},40.4); sfx('rise',40.4);
+  // the answer streams in, quoting the highlight and the note
+  const aw=$$('#m-ai .w'); tl.fromTo(aw,{opacity:0},{opacity:1,duration:.12,stagger:1.5/aw.length,ease:'none',immediateRender:false},40.75);
+  // the quoted highlight gets its yellow only once its first word has streamed in
+  const mw=$('#m-ai mark .w'); tl.to('#m-ai mark',{backgroundColor:'rgba(255,212,0,.42)',duration:.3},40.75+aw.indexOf(mw)*1.5/aw.length);
+  tl.fromTo('#m-clip',{opacity:0,y:16,scale:.95},{opacity:1,y:0,scale:1,duration:.45,ease:'back.out(1.6)',immediateRender:false},42.35); sfx('pop',42.35,{soft:1});
+  shot(40.6,2.8,1.12,900,pTop+520,'sine.inOut'); // keeps the chat clear of the claim on the left
+
+  /* ===== 43.5–47.8 big moment: the green line comes back ===== */
+  const D=7;
+  tl.to(chat,{opacity:0,y:-60,scale:.96,duration:.45,ease:'power2.in'},36.5+D);
+  tl.to(cur,{opacity:0,duration:.01},36.5+D);
+  shot(36.7+D,1.1,1.35,rFig.cx,rFig.cy-10,'power3.inOut'); sfx('whoosh',36.6+D,{dur:1.1});
+  tl.to(green,{strokeDashoffset:0,duration:2.6,ease:'none'},37.9+D);
   // snaps upward land on yellow dots = a highlight, a revisit
-  const gl=t=>37.9+2.6*t;
+  const gl=t=>37.9+D+2.6*t;
   tl.fromTo('#r1',{opacity:0,scale:0},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},gl(.33)); sfx('rise',gl(.30));
   tl.fromTo('#r2',{opacity:0,scale:0},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},gl(.62)); sfx('rise',gl(.60),{up:1});
-  tl.to('#lgreen',{opacity:1,duration:.4},40.2);
-  tl.to('#red',{opacity:.35,duration:.6},38.5); tl.to('#lred',{opacity:.35,duration:.6},38.5);
-  claim('c8',38.3,40.7,inWords,outUp);
-  shot(38.0,2.8,1.5,rFig.cx+40,rFig.cy-30,'sine.inOut');
+  tl.to('#lgreen',{opacity:1,duration:.4},40.2+D);
+  tl.to('#red',{opacity:.35,duration:.6},38.5+D); tl.to('#lred',{opacity:.35,duration:.6},38.5+D);
+  claim('c8',38.3+D,40.7+D,inWords,outUp);
+  shot(38.0+D,2.8,1.5,rFig.cx+40,rFig.cy-30,'sine.inOut');
 
-  /* ===== 40.8–46.5 highlighter wipe to the end card ===== */
-  tl.fromTo('#wipe',{scaleX:0},{scaleX:1,duration:.65,ease:'power3.inOut',immediateRender:false},40.8); sfx('marker',40.8,{dur:.6,big:1});
-  tl.set('#end',{visibility:'visible'},41.4);
-  tl.fromTo('#endlogo',{opacity:0,scale:.6,rotate:-8},{opacity:1,scale:1,rotate:0,duration:.7,ease:'back.out(1.8)',immediateRender:false},41.5);
-  const nm=splitChars($('#endname')); inUp(nm,$('#endname'),41.65,{dur:.9,st:.03});
-  const tg=splitChars($('#endtag .txt')); inWords(tg,$('#endtag'),42.6,{st:.14});
-  tl.fromTo('#endsm',{opacity:0,y:16},{opacity:1,y:0,duration:.6,ease:'power2.out',immediateRender:false},43.6);
-  tl.fromTo('#end',{scale:1},{scale:1.04,duration:5,ease:'sine.inOut',immediateRender:false},41.4);
-  sfx('chime',41.6);
+  /* ===== 47.8–53.5 highlighter wipe to the end card ===== */
+  tl.fromTo('#wipe',{scaleX:0},{scaleX:1,duration:.65,ease:'power3.inOut',immediateRender:false},40.8+D); sfx('marker',40.8+D,{dur:.6,big:1});
+  tl.set('#end',{visibility:'visible'},41.4+D);
+  tl.fromTo('#endlogo',{opacity:0,scale:.6,rotate:-8},{opacity:1,scale:1,rotate:0,duration:.7,ease:'back.out(1.8)',immediateRender:false},41.5+D);
+  const nm=splitChars($('#endname')); inUp(nm,$('#endname'),41.65+D,{dur:.9,st:.03});
+  const tg=splitChars($('#endtag .txt')); inWords(tg,$('#endtag'),42.6+D,{st:.14});
+  tl.fromTo('#endsm',{opacity:0,y:16},{opacity:1,y:0,duration:.6,ease:'power2.out',immediateRender:false},43.6+D);
+  tl.fromTo('#end',{scale:1},{scale:1.04,duration:5,ease:'sine.inOut',immediateRender:false},41.4+D);
+  sfx('chime',41.6+D);
   tl.to({},{duration:.01},DURATION-.01);
 }
 
@@ -585,16 +648,16 @@ async function buildAudio(){
   pad(0,5,'Dm',700,.018); pad(5,5.2,'Bb',800,.018);
   // product: loop F Am Dm Bb from 10.2, every 8 beats
   const prog=['F','Am','Dm','Bb'], start=10.2, bar8=8*B;
-  for(let i=0;start+i*bar8<40.8;i++){const name=prog[i%4], t=start+i*bar8, dur=Math.min(bar8,40.8-t)+.2;
+  for(let i=0;start+i*bar8<47.8;i++){const name=prog[i%4], t=start+i*bar8, dur=Math.min(bar8,47.8-t)+.2;
     pad(t,dur,name,1400+i*120,.016);
     const tones=CH[name].map(m=>m+12), pat=[0,2,4,3,1,3,2,4];
-    for(let s=0;s<16;s++){const tt=t+s*B/2;if(tt>=40.7)break;pluck(tt,tones[pat[s%8]],.045*(s%2?0.7:1));}
-    for(let s=0;s<8;s++){const tt=t+s*B;if(tt>=40.6||tt<13)continue;if(s%2===0)kick(tt,.22);if(tt>15.5)hat(tt+B/2);}}
+    for(let s=0;s<16;s++){const tt=t+s*B/2;if(tt>=47.7)break;pluck(tt,tones[pat[s%8]],.045*(s%2?0.7:1));}
+    for(let s=0;s<8;s++){const tt=t+s*B;if(tt>=47.6||tt<13)continue;if(s%2===0)kick(tt,.22);if(tt>15.5)hat(tt+B/2);}}
   // end: resolve on F, bright
-  pad(40.8,4.2,'F',2600,.022);
+  pad(47.8,4.2,'F',2600,.022);
   // soft riser into the wipe
-  {const s=noiseSrc(38.8,2.0),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;f.frequency.setValueAtTime(400,38.8);f.frequency.exponentialRampToValueAtTime(5000,40.8);
-   const g=ctx.createGain();g.gain.setValueAtTime(0,38.8);g.gain.linearRampToValueAtTime(.09,40.75);g.gain.linearRampToValueAtTime(0,40.95);s.connect(f);f.connect(g);g.connect(fxBus);}
+  {const s=noiseSrc(45.8,2.0),f=ctx.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;f.frequency.setValueAtTime(400,45.8);f.frequency.exponentialRampToValueAtTime(5000,47.8);
+   const g=ctx.createGain();g.gain.setValueAtTime(0,45.8);g.gain.linearRampToValueAtTime(.09,47.75);g.gain.linearRampToValueAtTime(0,47.95);s.connect(f);f.connect(g);g.connect(fxBus);}
 
   // ---- effects from the timeline's event list
   for(const e of SFX){const t=e.at;

@@ -4,7 +4,7 @@ A Chrome/Edge extension for taking notes while you read: highlight passages, att
 
 [![A foggy article; highlighting a sentence brings it back into focus](docs/demo-preview.gif)](docs/demo.mp4)
 
-**[▶ Watch the 45-second demo, with sound](docs/demo.mp4).** You read something great, and a week later it's gone. The demo shows how Margin Notes keeps it: highlight a line, write a note in your own words, clip a chart, see it all in the side panel, then search and export it from the library. Made with the tooling in [demo-video/](demo-video/).
+**[▶ Watch the 53-second demo, with sound](docs/demo.mp4).** You read something great, and a week later it's gone. The demo shows how Margin Notes keeps it: highlight a line, write a note in your own words, clip a chart, see it all in the side panel, search and export it from the library, and ask about it from a chat app over MCP. Made with the tooling in [demo-video/](demo-video/).
 
 ## Run it
 

@@ -4,7 +4,7 @@ Two ways to make the demo. Both use the same article, `record/site.mjs`.
 
 ## The README demo (`motion/`)
 
-`docs/demo.mp4` comes from [motion/index.html](motion/index.html). It is a single HTML page animated with GSAP. The extension's UI (selection toolbar, note popover, snip, side panel, library) is rebuilt in HTML using the real styles. The music and sound effects are synthesized in the page with Web Audio, so there are no audio files and nothing to license.
+`docs/demo.mp4` comes from [motion/index.html](motion/index.html). It is a single HTML page animated with GSAP. The extension's UI (selection toolbar, note popover, snip, side panel, library) is rebuilt in HTML using the real styles. A generic chat app then asks the library a question through the MCP server's `search_notes` tool. The music and sound effects are synthesized in the page with Web Audio, so there are no audio files and nothing to license.
 
 - **Watch it:** open `motion/index.html` in a browser. It autoplays with sound and loops. Space pauses, R restarts, and `?debug=1` adds a scrub bar.
 - **Export it:** `node motion/render.mjs mp4` renders every frame in headless Edge and writes `out/margin-notes-yc.mp4` with the audio (about 2 minutes). It uses the ffmpeg that ships with Remotion, so run `npm install` first.
